@@ -11,7 +11,7 @@
 FROM python:3.11-slim
 
 # Metadata
-LABEL maintainer="Tu Nombre <tu-email@example.com>"
+LABEL maintainer="Christian Miranda crmirandazambrano@gmail.com"
 LABEL version="1.0.0"
 LABEL description="Threat Detection API - Audio/Text Risk Analysis"
 
