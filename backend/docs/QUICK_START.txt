@@ -1,0 +1,387 @@
+================================================================================
+                 THREAT DETECTION API - GUÍA RÁPIDA DE INICIO
+================================================================================
+
+OPCIÓN 1: DOCKER COMPOSE (5 minutos - RECOMENDADO)
+================================================================================
+
+1. Clonar repositorio:
+   git clone https://github.com/tuusuario/threat-detection-backend.git
+   cd threat-detection-backend
+
+2. Crear archivo .env:
+   cp .env.example .env
+
+3. Levantar servicios:
+   docker-compose up -d
+
+4. Esperar 10 segundos y verificar:
+   curl http://localhost:8000/health
+
+   Resultado esperado:
+   {"status":"ok","database":"ok"}
+
+5. Acceder a documentación:
+   Navegador: http://localhost:8000/docs
+
+¡Listo! La API está corriendo en http://localhost:8000
+
+================================================================================
+OPCIÓN 2: PYTHON LOCAL (10 minutos - DESARROLLO)
+================================================================================
+
+1. Requisitos previos:
+   - Python 3.11+
+   - PostgreSQL 16 ejecutándose
+   - PostGIS instalado en PostgreSQL
+
+2. Clonar repositorio:
+   git clone https://github.com/tuusuario/threat-detection-backend.git
+   cd threat-detection-backend
+
+3. Crear entorno virtual:
+   python3.11 -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+
+4. Instalar dependencias:
+   pip install -r requirements.txt
+
+5. Configurar variables de entorno:
+   cp .env.example .env
+   # Editar .env con tus valores
+
+6. Inicializar base de datos:
+   python -c "from database.connection import init_db; init_db()"
+
+7. Ejecutar servidor:
+   python main.py
+
+   O con auto-reload:
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+¡Listo! La API está corriendo en http://localhost:8000
+
+================================================================================
+PRIMEROS PASOS
+================================================================================
+
+PASO 1: REGISTRAR USUARIO
+
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "123456",
+    "email": "admin@example.com"
+  }'
+
+Respuesta:
+{
+  "id": "uuid-123",
+  "username": "admin",
+  "email": "admin@example.com",
+  "created_at": "2026-03-27T10:30:00"
+}
+
+Guardar el "id" para usos posteriores: USER_ID="uuid-123"
+
+---
+
+PASO 2: LOGIN
+
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "123456"
+  }'
+
+Respuesta:
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user_id": "uuid-123"
+}
+
+Guardar el token: TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+---
+
+PASO 3: ANALIZAR UN TEXTO (Sin autenticación)
+
+curl -X POST http://localhost:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "si no pagas habrá consecuencias"
+  }'
+
+Respuesta:
+{
+  "risk": "HIGH",
+  "category": "EXTORTION",
+  "score": 0.87,
+  "keywords": ["pagar", "consecuencias"]
+}
+
+---
+
+PASO 4: GENERAR EMBEDDING
+
+curl -X POST http://localhost:8000/embedding \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "si no pagas habrá consecuencias"
+  }'
+
+Respuesta:
+{
+  "embedding": [0.123, 0.456, 0.789, ...],
+  "model": "all-MiniLM-L6-v2"
+}
+
+---
+
+PASO 5: GUARDAR UNA UBICACIÓN
+
+curl -X POST http://localhost:8000/geo \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "uuid-123",
+    "lat": -0.1807,
+    "lon": -78.4678,
+    "description": "Evento sospechoso en Quito"
+  }'
+
+Respuesta:
+{
+  "message": "Ubicación registrada",
+  "location_id": "geo-uuid-456"
+}
+
+---
+
+PASO 6: BUSCAR EVENTOS CERCANOS
+
+curl "http://localhost:8000/geo/nearby?lat=-0.1807&lon=-78.4678&radius=1000"
+
+Respuesta:
+{
+  "nearby_events": [
+    {
+      "id": "geo-uuid-1",
+      "user_id": "uuid-123",
+      "description": "Evento sospechoso en Quito",
+      "risk": "HIGH",
+      "category": "THREAT",
+      "created_at": "2026-03-27T10:30:00"
+    }
+  ],
+  "count": 1
+}
+
+---
+
+PASO 7: REGISTRAR UN COMENTARIO
+
+curl -X POST http://localhost:8000/comments \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "uuid-123",
+    "text": "Posible amenaza detectada",
+    "risk": "HIGH"
+  }'
+
+Respuesta:
+{
+  "id": "comment-uuid-789",
+  "text": "Posible amenaza detectada",
+  "risk": "HIGH",
+  "timestamp": "2026-03-27T10:30:00"
+}
+
+---
+
+PASO 8: VER HISTORIAL DE EVENTOS
+
+curl "http://localhost:8000/comments/uuid-123?limit=10"
+
+Respuesta:
+{
+  "user_id": "uuid-123",
+  "count": 1,
+  "events": [
+    {
+      "id": "comment-uuid-789",
+      "text": "Posible amenaza detectada",
+      "risk": "HIGH",
+      "timestamp": "2026-03-27T10:30:00"
+    }
+  ]
+}
+
+================================================================================
+DOCUMENTACIÓN INTERACTIVA
+================================================================================
+
+Swagger UI (Recomendado):
+  http://localhost:8000/docs
+
+ReDoc (Alternativa):
+  http://localhost:8000/redoc
+
+OpenAPI JSON:
+  http://localhost:8000/openapi.json
+
+En Swagger puedes:
+- Ver todos los endpoints
+- Leer parámetros y respuestas
+- Probar llamadas directamente
+
+================================================================================
+SOLUCIÓN DE PROBLEMAS COMUNES
+================================================================================
+
+PROBLEMA: "Connection refused" en PostgreSQL
+
+Solución 1 (Docker Compose):
+  docker-compose logs postgres
+  docker-compose up -d postgres
+
+Solución 2 (PostgreSQL local):
+  brew services start postgresql@16  # macOS
+  sudo systemctl start postgresql    # Linux
+
+---
+
+PROBLEMA: Error "address already in use" (puerto 8000)
+
+Solución:
+  # Cambiar puerto
+  uvicorn main:app --port 8001 --reload
+
+  # O matar el proceso
+  lsof -i :8000
+  kill -9 <PID>
+
+---
+
+PROBLEMA: Módulo no encontrado
+
+Solución:
+  # Verificar venv activado
+  source venv/bin/activate
+  
+  # Reinstalar dependencias
+  pip install --force-reinstall -r requirements.txt
+
+---
+
+PROBLEMA: "Module 'uvicorn' not found"
+
+Solución:
+  pip install uvicorn==0.24.0
+
+---
+
+PROBLEMA: BD no inicializa
+
+Solución (Docker):
+  docker-compose down -v
+  docker-compose up -d
+
+Solución (Local):
+  dropdb -U postgres threat_detection
+  createdb -U postgres threat_detection
+
+---
+
+PROBLEMA: Token JWT expirado
+
+Solución:
+  Hacer login nuevamente (ver PASO 2)
+
+================================================================================
+ESTRUCTURA DEL PROYECTO
+================================================================================
+
+threat-detection-backend/
+├── main.py              # Punto de entrada
+├── requirements.txt     # Dependencias
+├── .env.example         # Variables de configuración
+├── Dockerfile           # Imagen Docker
+├── docker-compose.yml   # Orquestación local
+│
+├── routes/              # Endpoints REST
+│   ├── auth.py          # /auth
+│   ├── audio.py         # /audio
+│   ├── analyze.py       # /analyze
+│   ├── geo.py           # /geo
+│   └── comments.py      # /comments
+│
+├── services/            # Lógica de negocio
+│   ├── auth_service.py
+│   ├── detection_service.py
+│   ├── embedding_service.py
+│   └── geo_service.py
+│
+├── models/              # Base de datos
+│   ├── database.py      # Tablas
+│   └── schemas.py       # Validaciones
+│
+├── database/            # Configuración BD
+│   └── connection.py    # Setup PostgreSQL
+│
+├── uploads/             # Archivos subidos
+│   └── audio/           # Audio chunks
+│
+└── logs/                # Logs de la aplicación
+
+================================================================================
+COMANDOS ÚTILES
+================================================================================
+
+Docker Compose:
+  docker-compose up -d              # Iniciar en background
+  docker-compose down               # Detener servicios
+  docker-compose logs -f            # Ver logs en tiempo real
+  docker-compose ps                 # Ver estado
+  docker-compose restart            # Reiniciar
+  docker-compose down -v            # Detener y eliminar volúmenes
+
+Python Local:
+  source venv/bin/activate          # Activar entorno virtual
+  pip install -r requirements.txt   # Instalar dependencias
+  python main.py                    # Ejecutar servidor
+  python -m pytest                  # Ejecutar tests
+  black .                           # Formatear código
+
+PostgreSQL:
+  docker-compose exec postgres psql -U admin -d threat_detection
+  \dt                               # Listar tablas
+  \q                                # Salir
+
+Desarrollo:
+  git clone <repo>                  # Clonar repositorio
+  git checkout -b feat/nueva        # Crear rama
+  git add .                         # Agregar cambios
+  git commit -m "feat: descripción" # Commitear
+  git push origin feat/nueva        # Subir rama
+
+================================================================================
+SIGUIENTE: DOCUMENTACIÓN COMPLETA
+================================================================================
+
+Leer el archivo README.md o README.txt para documentación detallada:
+- Endpoints completos con ejemplos
+- Configuración avanzada
+- Deployment en producción
+- Security best practices
+- Troubleshooting completo
+
+================================================================================
+
+¡Listo para empezar! 🚀
+
+Necesitas ayuda? Abre un issue en GitHub o contacta al equipo.
+
+================================================================================
