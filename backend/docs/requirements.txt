@@ -1,0 +1,44 @@
+# ================================================================================
+# THREAT DETECTION API - DEPENDENCIAS PYTHON
+# ================================================================================
+#
+# Framework & Server
+fastapi==0.104.1
+uvicorn==0.24.0
+python-multipart==0.0.6
+
+# Base de Datos
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+geoalchemy2==0.14.1
+shapely==2.0.2
+
+# Autenticación & Seguridad
+python-jose==3.3.0
+PyJWT==2.8.1
+passlib==1.7.4
+python-dotenv==1.0.0
+bcrypt==4.1.1
+
+# Validación & Schemas
+pydantic==2.5.0
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# AI & ML
+sentence-transformers==2.2.2
+torch==2.1.2
+numpy==1.26.3
+
+# Utilidades
+requests==2.31.0
+aiofiles==23.2.1
+httpx==0.25.2
+
+# Development (Opcional)
+# pytest==7.4.3
+# pytest-cov==4.1.0
+# black==23.12.1
+# flake8==6.1.0
+# isort==5.13.2
+# mypy==1.7.1
