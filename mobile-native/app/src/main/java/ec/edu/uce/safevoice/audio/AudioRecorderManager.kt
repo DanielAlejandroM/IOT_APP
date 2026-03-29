@@ -1,5 +1,6 @@
 package ec.edu.uce.safevoice.audio
 
+import android.annotation.SuppressLint
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
@@ -19,8 +20,21 @@ class AudioRecorderManager {
     @Volatile
     private var isRecording = false
 
-    suspend fun startRecording(onWindowReady: suspend (ShortArray) -> Unit) = withContext(Dispatchers.IO) {
-        val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+    @SuppressLint("MissingPermission")
+    suspend fun startRecording(
+        onWindowReady: suspend (ShortArray) -> Unit
+    ) = withContext(Dispatchers.IO) {
+
+        val minBufferSize = AudioRecord.getMinBufferSize(
+            sampleRate,
+            channelConfig,
+            audioFormat
+        )
+
+        if (minBufferSize == AudioRecord.ERROR || minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
+            throw IllegalStateException("No se pudo obtener un buffer válido para AudioRecord")
+        }
+
         val bufferSize = max(minBufferSize, sampleRate * 2)
 
         val recorder = AudioRecord(
@@ -31,7 +45,12 @@ class AudioRecorderManager {
             bufferSize
         )
 
+        if (recorder.state != AudioRecord.STATE_INITIALIZED) {
+            throw IllegalStateException("AudioRecord no pudo inicializarse")
+        }
+
         audioRecord = recorder
+
         val readBuffer = ShortArray(bufferSize / 2)
         val slidingWindow = ArrayList<Short>(sampleRate)
 
@@ -40,6 +59,7 @@ class AudioRecorderManager {
 
         while (isActive && isRecording) {
             val read = recorder.read(readBuffer, 0, readBuffer.size)
+
             if (read > 0) {
                 for (i in 0 until read) {
                     slidingWindow.add(readBuffer[i])
@@ -61,11 +81,17 @@ class AudioRecorderManager {
 
     fun stopRecording() {
         isRecording = false
+
         try {
             audioRecord?.stop()
         } catch (_: Exception) {
         }
-        audioRecord?.release()
+
+        try {
+            audioRecord?.release()
+        } catch (_: Exception) {
+        }
+
         audioRecord = null
     }
 }
