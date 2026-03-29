@@ -1,83 +1,79 @@
 ================================================================================
-THREAT DETECTION PLATFORM - GUÍA RÁPIDA DE INICIO (ARQUITECTURA MODULAR)
-========================================================================
+THREAT DETECTION PLATFORM - QUICK START (MVP REAL-TIME)
+=======================================================
 
-# DESCRIPCIÓN GENERAL
+TIEMPO: 5–10 minutos
+EQUIPO: 5 desarrolladores
+COMPATIBLE: Windows / Linux / macOS
 
-El sistema está compuesto por 3 servicios desacoplados:
+================================================================================
+ARQUITECTURA DEL SISTEMA
+========================
 
-1. backend        → API REST (FastAPI, lógica de negocio, autenticación)
-2. ai-service     → Procesamiento de IA (NLP, embeddings)
-3. postgres       → Base de datos (PostgreSQL + PostGIS)
+Este sistema está compuesto por servicios desacoplados:
 
-* Integración externa:
+1. backend        → API REST + lógica + orquestación
+2. ai-service     → IA (análisis + embeddings)
+3. postgres       → Base de datos
+4. firebase       → Notificaciones (OBLIGATORIO en MVP)
 
-4. Firebase       → Notificaciones push en tiempo real
+FLUJO:
 
-Arquitectura:
-
-Cliente → Backend → AI Service
+Mobile App → Backend → AI Service
 ↓
 PostgreSQL
 ↓
 Firebase
 
----
+NOTA:
+El backend depende del AI Service para análisis.
 
-## REQUISITOS
+================================================================================
+REQUISITOS
+==========
 
 * Docker
 * Docker Compose
-* (Opcional) Cuenta Firebase para notificaciones
+* Git
 
 ================================================================================
-OPCIÓN 1: DOCKER COMPOSE (RECOMENDADO)
-======================================
+INICIO RÁPIDO (DOCKER)
+======================
 
-1. Clonar repositorio:
-
----
-
-git clone https://github.com/tuusuario/threat-detection-backend.git
-cd threat-detection-backend/devops
+1. Clonar repositorio backend:
 
 ---
 
-2. Configurar variables de entorno:
+git clone https://github.com/kruben84ec/IOT_APP_backend.git
+cd IOT_APP_backend/devops
+
+---
+
+2. Configurar entorno:
 
 ---
 
 cp .env.example .env
 
-IMPORTANTE:
-Configurar credenciales reales en .env:
-
-# Base de datos
+Editar variables clave:
 
 DATABASE_URL=postgresql://admin:securepassword123@postgres:5432/threat_detection
-
-# Seguridad
-
-SECRET_KEY=change-this-in-production
-
-# AI Service
-
 AI_SERVICE_URL=http://ai-service:8001
-
-# Firebase (opcional pero recomendado)
-
+SECRET_KEY=change-this-in-production
 FIREBASE_CREDENTIALS_PATH=/app/firebase.json
 
 ---
 
-3. (Opcional) Configurar Firebase:
+3. Configurar Firebase:
 
 ---
 
 Descargar credenciales desde Firebase Console:
+
 Project Settings → Service Accounts → Generate new private key
 
 Guardar archivo como:
+
 backend/firebase.json
 
 ---
@@ -94,11 +90,14 @@ docker-compose up -d --build
 
 ---
 
-⏱ 15–40 segundos (AI service carga modelo ML)
+⏱ 20–40 segundos
+
+NOTA:
+El AI Service carga el modelo en la primera ejecución (lazy loading)
 
 ---
 
-6. Verificar servicios:
+6. Verificar sistema:
 
 ---
 
@@ -108,49 +107,25 @@ curl http://localhost:8000/health
 Respuesta esperada:
 {"status":"ok","database":"ok"}
 
-AI Service:
-curl http://localhost:8001/docs
+================================================================================
+FLUJO REAL-TIME (CRÍTICO)
+=========================
 
----
+La app móvil envía audio en CHUNKS.
 
-7. Acceder a documentación:
+El backend:
 
----
+1. Recibe chunk
+2. Mantiene buffer por usuario
+3. Construye ventana de contexto
+4. Envía contexto al AI Service
 
-Backend:
-http://localhost:8000/docs
-
-AI Service:
-http://localhost:8001/docs
+IMPORTANTE:
+NO se analiza chunk individual.
+SIEMPRE se analiza contexto acumulado.
 
 ================================================================================
-SISTEMA LISTO
-=============
-
-Backend API:
-http://localhost:8000
-
-AI Service:
-http://localhost:8001
-
-================================================================================
-FLUJO FUNCIONAL (IMPORTANTE)
-============================
-
-1. Cliente envía request → Backend
-2. Backend valida y procesa lógica
-3. Backend llama a AI Service (HTTP interno)
-4. AI Service procesa modelo
-5. Backend responde al cliente
-6. (Opcional) Backend envía notificación vía Firebase
-
-NOTA:
-Si AI Service no está disponible:
-
-* /analyze y /embedding pueden fallar
-
-================================================================================
-PRIMEROS PASOS (TEST RÁPIDO)
+PRUEBA COMPLETA (END-TO-END)
 ============================
 
 ## PASO 1: REGISTRAR USUARIO
@@ -188,17 +163,21 @@ Guardar TOKEN
 
 ---
 
-## PASO 3: ANALIZAR TEXTO (usa AI Service)
+## PASO 3: ANÁLISIS (USA IA)
 
 curl -X POST http://localhost:8000/analyze 
 -H "Content-Type: application/json" 
 -d '{
-"text": "si no pagas habrá consecuencias"
+"user_id": "123",
+"text": "si no pagas vas a ver consecuencias"
 }'
+
+FLUJO INTERNO:
+Backend → AI Service → Resultado
 
 ---
 
-## PASO 4: GENERAR EMBEDDING (usa AI Service)
+## PASO 4: EMBEDDINGS
 
 curl -X POST http://localhost:8000/embedding 
 -H "Content-Type: application/json" 
@@ -207,95 +186,119 @@ curl -X POST http://localhost:8000/embedding
 }'
 
 ================================================================================
-NOTIFICACIONES CON FIREBASE (OPCIONAL)
-======================================
+LÓGICA DE DECISIÓN (MVP)
+========================
 
-El sistema puede enviar alertas push cuando se detecta alto riesgo.
+HIGH (>= 0.85):
+→ Notificación inmediata
 
-Requisitos:
+MEDIUM (>= 0.65):
+→ Notificación solo si se repite en ventana
 
-* Proyecto Firebase
-* Archivo de credenciales (firebase.json)
+LOW:
+→ No se notifica
 
-Ubicación esperada:
-backend/firebase.json
+================================================================================
+MANEJO DE FALSOS POSITIVOS
+==========================
 
-Uso típico:
+Para evitar ruido:
 
-* Evento de riesgo HIGH → envío de notificación
-* Integración desde backend (no desde AI)
+* Se usa ventana de tiempo
+* Se requiere repetición en MEDIUM
+* Se acumula contexto (no eventos aislados)
+
+================================================================================
+FALLBACK (CUANDO IA FALLA)
+==========================
+
+Si AI Service no responde:
+
+1. Backend aplica reglas simples (keywords)
+2. Retorna resultado con baja confianza:
+
+{
+"risk": "MEDIUM",
+"confidence": "low",
+"source": "fallback"
+}
+
+================================================================================
+NOTIFICACIONES (FIREBASE)
+=========================
+
+Se disparan cuando:
+
+* Riesgo HIGH
+* O múltiples eventos MEDIUM
+
+Firebase es obligatorio en este MVP.
 
 ================================================================================
 PROBLEMAS COMUNES
 =================
 
-## PROBLEMA: AI tarda en responder
+## AI NO RESPONDE:
 
-Causa:
-Carga inicial del modelo
-
-Solución:
 docker-compose logs -f ai-service
 
-Esperar hasta que el modelo esté listo
+Esperar carga del modelo
 
 ---
 
-## PROBLEMA: Error conexión ai-service
+## ERROR EN /analyze:
 
-docker-compose ps
+Causa:
+AI Service no disponible
 
-Verificar que:
-ai-service esté en estado "Up"
+Solución:
+docker-compose restart ai-service
 
 ---
 
-## PROBLEMA: Puerto ocupado
+## PUERTO OCUPADO:
 
 lsof -i :8000
 kill -9 <PID>
 
 ---
 
-## PROBLEMA: Base de datos no responde
-
-docker-compose logs postgres
-
----
-
-## PROBLEMA: Firebase no funciona
+## FIREBASE NO FUNCIONA:
 
 Verificar:
 
-* archivo firebase.json existe
-* path correcto en .env
-* permisos válidos
+* backend/firebase.json existe
+* ruta correcta en .env
+* credenciales válidas
 
 ================================================================================
 COMANDOS ÚTILES
 ===============
 
-docker-compose up -d          # Iniciar
-docker-compose down           # Detener
-docker-compose down -v        # Eliminar datos
-docker-compose logs -f        # Ver logs
-docker-compose ps             # Estado
+docker-compose up -d
+docker-compose down
+docker-compose down -v
+docker-compose logs -f
+docker-compose ps
 
-Ver logs específicos:
+Logs específicos:
 docker-compose logs -f backend
 docker-compose logs -f ai-service
 
 ================================================================================
-NOTAS DE ARQUITECTURA
-=====================
+NOTAS FINALES
+=============
 
-* Backend y AI Service están desacoplados
-* AI puede escalar independientemente
-* Firebase es integración externa
-* PostgreSQL es único punto de persistencia
+* El backend orquesta todo el sistema
+* AI Service procesa modelos ML
+* Firebase maneja alertas en tiempo real
+* PostgreSQL almacena eventos
 
 ================================================================================
 
-¡Sistema listo para operar! 🚀
+SISTEMA LISTO 🚀
+
+Siguiente paso:
+→ Integrar app móvil con endpoint /analyze
 
 ================================================================================

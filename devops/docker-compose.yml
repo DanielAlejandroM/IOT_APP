@@ -86,6 +86,7 @@ services:
     # 🔥 SOLO desarrollo (hot reload)
     volumes:
       - ../backend:/app
+      - ../backend/firebase.json:/app/firebase.json
 
     depends_on:
       postgres:
