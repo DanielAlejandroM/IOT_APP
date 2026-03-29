@@ -1,59 +1,80 @@
 # ================================================================================
-# DOCKERFILE - THREAT DETECTION API BACKEND (FINAL)
+# DOCKERFILE - THREAT DETECTION API BACKEND
+# ================================================================================
+#
+# Build: docker build -t threat-detection-api:1.0.0 .
+# Run: docker run -p 8000:8000 threat-detection-api:1.0.0
+#
 # ================================================================================
 
+# Imagen base: Python 3.11 slim (100MB vs 900MB full)
 FROM python:3.11-slim
 
-# ==============================
-# Configuración base
-# ==============================
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# Metadata
+LABEL maintainer="Christian Miranda crmirandazambrano@gmail.com"
+LABEL version="1.0.0"
+LABEL description="Threat Detection API - Audio/Text Risk Analysis"
 
+# Directorio de trabajo
 WORKDIR /app
 
-# ==============================
-# Dependencias del sistema
-# ==============================
+# Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
-    gcc \
+    postgresql-client \
     libpq-dev \
-    curl \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# ==============================
-# Dependencias Python
-# ==============================
-COPY backend/requirements.txt .
+# Copiar requirements
+COPY requirements.txt .
 
-RUN pip install --upgrade pip setuptools wheel && \
+# Instalar dependencias Python
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# ==============================
-# Código de la app
-# ==============================
-COPY backend/ .
+# Copiar código de la aplicación
+COPY . .
 
-# ==============================
-# Seguridad
-# ==============================
+# Crear directorio de uploads
+RUN mkdir -p uploads/audio logs
+
+# Usuario no-root para seguridad
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
 USER appuser
 
-# ==============================
-# Puerto
-# ==============================
+# Puerto que expone
 EXPOSE 8000
 
-# ==============================
-# Healthcheck
-# ==============================
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
 
-# ==============================
-# Start
-# ==============================
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando de inicio
+CMD ["python", "main.py"]
+
+# ================================================================================
+# NOTAS:
+# ================================================================================
+#
+# Construir imagen:
+#   docker build -t threat-detection-api:1.0.0 .
+#
+# Ejecutar localmente:
+#   docker run \
+#     -p 8000:8000 \
+#     -e DATABASE_URL=postgresql://admin:pass@host:5432/threat_detection \
+#     -e SECRET_KEY=tu-clave-secreta \
+#     threat-detection-api:1.0.0
+#
+# Con docker-compose:
+#   docker-compose up -d
+#
+# Ver logs:
+#   docker logs threat-api
+#
+# Ejecutar comando dentro del contenedor:
+#   docker exec threat-api python -c "from database.connection import init_db; init_db()"
+#
+# ================================================================================
