@@ -30,7 +30,29 @@ services:
 
 
   # ==============================
-  # FastAPI Backend
+  # AI SERVICE (NLP / Embeddings)
+  # ==============================
+  ai-service:
+    build:
+      context: ..
+      dockerfile: devops/Dockerfile.ai
+
+    container_name: threat-ai
+
+    ports:
+      - "8001:8001"
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+  # ==============================
+  # BACKEND API
   # ==============================
   backend:
     build:
@@ -40,11 +62,18 @@ services:
     container_name: threat-api
 
     environment:
+      # DB
       DATABASE_URL: postgresql://admin:securepassword123@postgres:5432/threat_detection
+
+      # AI SERVICE
+      AI_SERVICE_URL: http://ai-service:8001
+
+      # Seguridad
       SECRET_KEY: change-this-in-production
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
 
+      # App
       DEBUG: "True"
       ENVIRONMENT: development
       LOG_LEVEL: INFO
@@ -54,13 +83,15 @@ services:
     ports:
       - "8000:8000"
 
-    # 🔥 Solo para desarrollo (hot reload)
+    # 🔥 SOLO desarrollo (hot reload)
     volumes:
       - ../backend:/app
 
     depends_on:
       postgres:
         condition: service_healthy
+      ai-service:
+        condition: service_started
 
     restart: unless-stopped
 
@@ -70,9 +101,18 @@ services:
       timeout: 10s
       retries: 3
 
+
+# ==============================
+# Volúmenes
+# ==============================
 volumes:
   postgres_data:
 
+
+# ==============================
+# Red
+# ==============================
 networks:
   default:
     name: threat-detection-network
+    driver: bridge
