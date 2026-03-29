@@ -70,7 +70,6 @@ PASO 1: REGISTRAR USUARIO
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "admin",
     "password": "123456",
     "email": "admin@example.com"
   }'
@@ -78,7 +77,6 @@ curl -X POST http://localhost:8000/auth/register \
 Respuesta:
 {
   "id": "uuid-123",
-  "username": "admin",
   "email": "admin@example.com",
   "created_at": "2026-03-27T10:30:00"
 }
