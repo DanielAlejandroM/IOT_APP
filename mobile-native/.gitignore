@@ -1,0 +1,60 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local config
+.idea/
+
+# Android Studio / IntelliJ
+captures/
+.navigation/
+.cxx/
+.externalNativeBuild/
+
+# Signing / secrets
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+.env
+.env.*
+google-services.json
+
+# Logs
+*.log
+
+# OS files
+Thumbs.db
+
+# Kotlin / Java
+out/
+
+# Android generated
+app/release/
+app/debug/
+
+# Fastlane / crash / reports
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+test_output/
+
+# Credenciales
+tokengithub
