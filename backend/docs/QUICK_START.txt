@@ -155,19 +155,12 @@ PRIMEROS PASOS (TEST RÁPIDO)
 
 ## PASO 1: REGISTRAR USUARIO
 
-curl -X POST http://localhost:8000/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "password": "123456",
-    "email": "admin@example.com"
-  }'
-
-Respuesta:
-{
-  "id": "uuid-123",
-  "email": "admin@example.com",
-  "created_at": "2026-03-27T10:30:00"
-}
+curl -X POST http://localhost:8000/auth/register 
+-H "Content-Type: application/json" 
+-d '{
+"email": "[admin@example.com](mailto:admin@example.com)",
+"password": "123456"
+}'
 
 Guardar USER_ID
 
