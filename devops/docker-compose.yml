@@ -48,8 +48,8 @@ services:
   # ========== FastAPI Backend ==========
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: devops/Dockerfile
     
     container_name: threat-api
     
@@ -77,10 +77,10 @@ services:
       - "8000:8000"
     
     volumes:
-      # Código en vivo (hot reload)
-      - .:/app
+      # Código en vivo (hot reload)urar los 
+      - ../backend:/app
       # Uploads persistentes
-      - ./uploads:/app/uploads
+      - ../backend/uploads:/app/uploads
       # Logs persistentes
       - ./logs:/app/logs
     
