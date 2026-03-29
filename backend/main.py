@@ -1,7 +1,14 @@
 from fastapi import FastAPI
+
+from database.connection import engine, Base
+from models import database  # 🔥 CRÍTICO
+
 from routes import auth
 
 app = FastAPI()
+
+# 🔥 esto crea la tabla
+Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router)
 
