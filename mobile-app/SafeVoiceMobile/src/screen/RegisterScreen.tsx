@@ -1,71 +1,155 @@
-import React, { useState} from "react";
-import { View, TextInput, Button, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
+
 import { registerUser } from "../services/authServices";
-import { colors } from "../theme/colors";
+import { colors, spacing, typography } from "../theme";
 
 export default function RegisterScreen({ navigation }: any) {
-    const [email, setEmail] = React.useState("");
-    const [password, setPassword] = React.useState("");
-    const [message, setMessage] = React.useState("");
 
-    const handleRegister = async () => {
-        try {
-            await registerUser(email, password);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
-            setMessage("Registro exitoso. Por favor, inicie sesión.");
-            
-            navigation.navigate("Login");
-        }catch (err) {
-            setMessage("Error al registrar. Intente nuevamente.");
-            console.error(err); 
-        }
-    };
+  const handleRegister = async () => {
 
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Registro SAFEVOICE</Text>
-            <TextInput
-                placeholder="Correo electrónico"
-                value={email}
-                onChangeText={setEmail}
-                style={styles.input}
-            />
-            <TextInput
-                placeholder="Contraseña"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                style={styles.input}
-            />
-            <Button title="Registrarse" onPress={handleRegister} />
-            {message ? <Text style={styles.message}>{message}</Text> : null}
-        </View>
-    );
+    try {
+
+      await registerUser(email, password);
+
+      setIsError(false);
+      setMessage("Usuario creado correctamente");
+
+      navigation.navigate("Login");
+
+    } catch (error) {
+
+      setIsError(true);
+      setMessage("Error al registrar usuario");
+
+      console.log(error);
+    }
+  };
+
+  return (
+
+    <View style={styles.container}>
+
+      <Text style={styles.title}>
+        Crear cuenta SAFEVOICE
+      </Text>
+
+      <TextInput
+        placeholder="Email"
+        style={styles.input}
+        value={email}
+        onChangeText={setEmail}
+      />
+
+      <TextInput
+        placeholder="Password"
+        secureTextEntry
+        style={styles.input}
+        value={password}
+        onChangeText={setPassword}
+      />
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleRegister}
+      >
+        <Text style={styles.buttonText}>
+          Registrarse
+        </Text>
+      </TouchableOpacity>
+
+      {message ? (
+
+        <Text
+          style={[
+            styles.message,
+            {
+              color: isError
+                ? colors.alertHigh
+                : colors.success
+            }
+          ]}
+        >
+          {message}
+        </Text>
+
+      ) : null}
+
+      <TouchableOpacity
+        style={styles.linkContainer}
+        onPress={() => navigation.navigate("Login")}
+      >
+        <Text style={styles.link}>
+          ¿Ya tienes cuenta? Inicia sesión
+        </Text>
+      </TouchableOpacity>
+
+    </View>
+
+  );
 }
 
-    const styles = StyleSheet.create({
-        container: {
-            flex: 1,
-            backgroundColor: colors.background,
-            justifyContent: "center",
-            padding: 20,
-        },
-        title: {    
-            fontSize: 24,
-            fontWeight: "bold",
-            marginBottom: 20,
-            color: colors.primary,
-            textAlign: "center", 
-        },
-        input: {
-            backgroundColor: "white",
-            marginBottom: 15,
-            padding: 10,
-            borderRadius: 6,
-        },
-        message: {
-            marginTop: 15,
-            color: "red",
-            textAlign: "center",
-        },
-    });
+const styles = StyleSheet.create({
+
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    padding: spacing.lg,
+  },
+
+  title: {
+    fontSize: typography.title,
+    marginBottom: spacing.xl,
+    color: colors.textPrimary,
+    textAlign: "center",
+  },
+
+  input: {
+    backgroundColor: colors.white,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    borderRadius: spacing.sm,
+  },
+
+  button: {
+    backgroundColor: colors.primary,
+    padding: spacing.md,
+    borderRadius: spacing.sm,
+    alignItems: "center",
+  },
+
+  buttonText: {
+    color: colors.white,
+    fontSize: typography.button,
+    fontWeight: "bold",
+  },
+
+  message: {
+    marginTop: spacing.md,
+    fontSize: typography.body,
+    textAlign: "center",
+  },
+
+  linkContainer: {
+    marginTop: spacing.lg,
+    alignItems: "center",
+  },
+
+  link: {
+    color: colors.secondary,
+    fontSize: typography.caption,
+  },
+
+});
