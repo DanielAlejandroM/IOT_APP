@@ -12,7 +12,7 @@ def create_user(db: Session, email: str, password: str):
     # 🔴 validar duplicado
     existing_user = db.query(User).filter(User.email == email).first()
     if existing_user:
-        raise Exception("User already exists")
+        raise Exception("Usario ya registrado con ese email")
 
     # 🔐 hash
     hashed_password = hash_password(password)
