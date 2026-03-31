@@ -16,9 +16,7 @@ app.include_router(auth.router)
 def health():
     return {"status": "ok"}
 
-# @app.post("/auth/login")
-# def login():
-#     return {"status": "ok"}
+
 
 # @app.post("/analyze")
 # def analyze():
