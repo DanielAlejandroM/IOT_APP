@@ -282,4 +282,4 @@ env/
 # La base de datos .> como la carpeta postgres_data/ crea carpetas automaticamente
 # PostgreSQL NO guarda tablas como archivos legibles
 
-postgres_data/
+devops/postgres_data/
