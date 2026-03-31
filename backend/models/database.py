@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from database.connection import Base
+from datetime import datetime
 
 
 class User(Base):
@@ -21,3 +22,17 @@ class User(Base):
     # ==============================
     # created_at = Column(DateTime, default=datetime.utcnow)
     # is_active = Column(Boolean, default=True)
+    
+
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String, nullable=False)
+
+    lat = Column(Float, nullable=False)
+    lng = Column(Float, nullable=False)
+
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+    user_id = Column(Integer, ForeignKey("users.id"))
