@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, Field
 
 class UserCreate(BaseModel):
     email: EmailStr
@@ -26,3 +26,19 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    
+
+class AlertCreate(BaseModel):
+    event_type: str = Field(..., min_length=3)
+    lat: float
+    lng: float
+
+
+class AlertResponse(BaseModel):
+    id: int
+    event_type: str
+    lat: float
+    lng: float
+
+    class Config:
+        from_attributes = True

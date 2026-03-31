@@ -4,6 +4,7 @@ from database.connection import engine, Base
 from models import database  # 🔥 CRÍTICO
 
 from routes import auth
+from routes import alerts
 
 app = FastAPI()
 
@@ -11,6 +12,8 @@ app = FastAPI()
 Base.metadata.create_all(bind=engine)
 
 app.include_router(auth.router)
+app.include_router(alerts.router)
+
 
 @app.get("/health")
 def health():
