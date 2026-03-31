@@ -35,8 +35,8 @@ email-validator>=2.0,<3.0
 # ==============================
 # AI & ML (ligero - MVP)
 # ==============================
-sentence-transformers>=2.2,<3.0
-numpy>=1.26,<2.0
+#sentence-transformers>=2.2,<3.0
+#numpy>=1.26,<2.0
 
 # ==============================
 # Utilidades

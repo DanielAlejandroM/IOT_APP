@@ -1,3 +1,20 @@
+# ================================================================================
+# DOCKER COMPOSE - THREAT DETECTION API COMPLETO
+# ================================================================================
+#
+# Servicios:
+# - PostgreSQL 16 con PostGIS (Base de datos)
+# - FastAPI Backend (Aplicación)
+#
+# Uso:
+#   docker-compose up -d        (Iniciar servicios)
+#   docker-compose ps           (Ver estado)
+#   docker-compose logs -f      (Ver logs)
+#   docker-compose down         (Detener servicios)
+#   docker-compose down -v      (Detener y eliminar volúmenes)
+#
+# ================================================================================
+
 version: '3.9'
 
 services:
@@ -10,7 +27,7 @@ services:
     container_name: threat-db
 
     env_file:
-      - ../.env
+      - .env
 
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -35,26 +52,26 @@ services:
   # ==============================
   # AI SERVICE (NLP / Embeddings)
   # ==============================
-  ai-service:
-    build:
-      context: ..
-      dockerfile: devops/Dockerfile.ai
+  # ai-service:
+  #   build:
+  #     context: ..
+  #     dockerfile: devops/Dockerfile.ai
 
-    container_name: threat-ai
+  #   container_name: threat-ai
 
-    env_file:
-      - ../.env
+  #   env_file:
+  #     - ../.env
 
-    ports:
-      - "8001:8001"
+  #   ports:
+  #     - "8001:8001"
 
-    restart: unless-stopped
+  #   restart: unless-stopped
 
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
 
 
   # ==============================
@@ -81,8 +98,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      ai-service:
-        condition: service_started
+      # ai-service:
+      #   condition: service_started
 
     restart: unless-stopped
 
