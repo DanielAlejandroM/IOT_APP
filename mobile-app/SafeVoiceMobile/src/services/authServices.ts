@@ -17,9 +17,9 @@ export const loginUser = async (email: string, password: string) => {
     //    email,
     //    password,
     //});
-    console
+    console.log("Mock login user:", email);
     return {
-        accest_token: "mock-jwt-token",
+        access_token: "mock-jwt-token",
         //response.data;
     };
 };

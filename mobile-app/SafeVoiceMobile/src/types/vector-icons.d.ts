@@ -1,0 +1,1 @@
+const logo = require("../assets/safevoice_logo.png");

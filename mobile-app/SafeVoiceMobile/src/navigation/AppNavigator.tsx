@@ -1,29 +1,44 @@
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { NavigationContainer } from '@react-navigation/native';
-import AlertsScreen from '../screen/AlertsScreen';
-import MonitoringScreen from '../screen/MonitoringScreen';
-import LoginScreen from '../screen/LoginScreen';
-import RegisterScreen from '../screen/RegisterScreen';
+import React, { useEffect, useState } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
+import LoginScreen from "../screen/LoginScreen";
+import RegisterScreen from "../screen/RegisterScreen";
+import MonitoringScreen from "../screen/MonitoringScreen";
+import AlertsScreen from "../screen/AlertsScreen";
+import AlertDetailScreen from "../screen/AlertDetailScreen";
 
-export type RootStackParamList = { 
-    Login: undefined;
-    Monitoring: undefined;
-    Alerts: undefined;
-    RegisterScreen: undefined;
-};
-
-const Stack = createNativeStackNavigator<RootStackParamList>(); 
+const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
+  const [initialRoute, setInitialRoute] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = await AsyncStorage.getItem("access_token");
+
+      if (token) {
+        setInitialRoute("Monitoring");
+      } else {
+        setInitialRoute("Login");
+      }
+    };
+
+    checkToken();
+  }, []);
+
+  if (!initialRoute) return null;
+
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
-        <Stack.Screen name="RegisterScreen" component={RegisterScreen} />
+      <Stack.Navigator screenOptions={{ headerShown:false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Monitoring" component={MonitoringScreen} />
         <Stack.Screen name="Alerts" component={AlertsScreen} />
+        <Stack.Screen name="AlertDetail" component={AlertDetailScreen} />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );
