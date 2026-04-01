@@ -2,8 +2,8 @@ const colors = {
   primary: "#1B9AAA",        // teal principal SAFEVOICE
   secondary: "#84DCC6",      // teal suave UI
 
-  background: "#F7F7FF",     // fondo app
-  surface: "#D9FFF5",        // tarjetas / panels
+  background: "#e8f3f1",     // fondo app
+  surface: "#FFFFFF",        // tarjetas / panels
 
   textPrimary: "#2D3047",    // texto principal
   textSecondary: "#6C6F85",  // texto secundario
@@ -15,7 +15,8 @@ const colors = {
   alertMedium: "#F4A261",    // alerta media
   success: "#2A9D8F",        
 
-  white: "#FFFFFF"
+  white: "#FFFFFF",
+  border : "#E6F2F0"
 };
 
 export default colors;

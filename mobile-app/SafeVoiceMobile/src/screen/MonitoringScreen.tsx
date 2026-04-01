@@ -4,166 +4,379 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Image
 } from "react-native";
 
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { colors, spacing, typography } from "../theme";
 
+const logo = require("../assets/safevoice_logo.png");
+
+
 export default function MonitoringScreen({ navigation }: any) {
+
   const [isMonitoring, setIsMonitoring] = useState(false);
 
+
   const toggleMonitoring = () => {
+
     setIsMonitoring(!isMonitoring);
 
-    if (!isMonitoring) {
-      console.log("Monitoring iniciado");
-    } else {
-      console.log("Monitoring detenido");
-    }
   };
+
 
   const logout = async () => {
+
     await AsyncStorage.removeItem("access_token");
+
     navigation.replace("Login");
+
   };
 
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <Text style={styles.header}>SAFEVOICE</Text>
 
-      {/* Status Card */}
-      <View style={styles.statusCard}>
-        <Text style={styles.statusTitle}>
-          Estado del monitoreo
-        </Text>
+    <SafeAreaView style={styles.container}>
 
-        <Text
+      <View style={styles.header}>
+
+
+        <Image
+
+          source={logo}
+
           style={[
-            styles.statusText,
+
+            styles.logo,
+
             {
-              color: isMonitoring
-                ? colors.monitoringActive
-                : colors.textSecondary,
-            },
+
+              opacity: isMonitoring ? 1 : .35
+
+            }
+
           ]}
-        >
-          {isMonitoring
-            ? "Monitoreo activo"
-            : "Monitoreo detenido"}
+
+        />
+
+
+        <Text style={styles.title}>
+
+          SAFEVOICE
+
         </Text>
+
+
+        <Text style={styles.subtitle}>
+
+          Monitoreo comunitario inteligente
+
+        </Text>
+
+
       </View>
 
-      {/* Main Button */}
-      <TouchableOpacity
-        style={[
-          styles.mainButton,
+
+      <View style={styles.statusCard}>
+
+        <Text style={styles.statusLabel}>
+
+          Estado actual
+
+        </Text>
+
+
+        <Text
+
+          style={[
+
+            styles.statusText,
+
+            {
+
+              color: isMonitoring
+
+                ? colors.success
+
+                : colors.textSecondary
+
+            }
+
+          ]}
+
+        >
+
           {
+
+            isMonitoring
+
+              ? "Monitoreo activo"
+
+              : "Monitoreo detenido"
+
+          }
+
+        </Text>
+
+
+      </View>
+
+
+
+      <TouchableOpacity
+
+        style={[
+
+          styles.mainButton,
+
+          {
+
             backgroundColor: isMonitoring
+
               ? colors.alertHigh
-              : colors.primary,
-          },
+
+              : colors.primary
+
+          }
+
         ]}
+
         onPress={toggleMonitoring}
+
       >
+
         <Text style={styles.mainButtonText}>
-          {isMonitoring
-            ? "Detener monitoreo"
-            : "Activar monitoreo"}
+
+          {
+
+            isMonitoring
+
+              ? "DETENER MONITOREO"
+
+              : "ACTIVAR MONITOREO"
+
+          }
+
         </Text>
+
       </TouchableOpacity>
 
-      {/* Secondary Actions */}
-      <TouchableOpacity
-        style={styles.secondaryButton}
-        onPress={() => navigation.navigate("Alerts")}
-      >
-        <Text style={styles.secondaryText}>
-          Ver alertas cercanas
-        </Text>
-      </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.logoutButton}
-        onPress={logout}
-      >
-        <Text style={styles.logoutText}>
-          Cerrar sesión
-        </Text>
-      </TouchableOpacity>
-    </View>
+
+      <View style={styles.actionsContainer}>
+
+
+        <TouchableOpacity
+
+          style={styles.alertButton}
+
+          onPress={() => navigation.navigate("Alerts")}
+
+        >
+
+          <Text style={styles.alertText}>
+
+            Ver alertas cercanas
+
+          </Text>
+
+        </TouchableOpacity>
+
+
+        <TouchableOpacity
+
+          style={styles.logoutButton}
+
+          onPress={logout}
+
+        >
+
+          <Text style={styles.logoutText}>
+
+            Cerrar sesión
+
+          </Text>
+
+        </TouchableOpacity>
+
+
+      </View>
+
+
+    </SafeAreaView>
+
   );
+
 }
+
+
 
 const styles = StyleSheet.create({
 
-container:{
-flex:1,
-backgroundColor: colors.background,
-alignItems:"center",
-justifyContent:"center",
-padding: spacing.lg
-},
+  container: {
 
-header:{
-fontSize: typography.title,
-fontWeight:"bold",
-color: colors.textPrimary,
-marginBottom: spacing.xl
-},
+    flex: 1,
 
-statusCard:{
-backgroundColor: colors.surface,
-width:"100%",
-borderRadius: spacing.sm,
-padding: spacing.lg,
-marginBottom: spacing.xl,
-alignItems:"center"
-},
+    backgroundColor: colors.background,
 
-statusTitle:{
-fontSize: typography.caption,
-color: colors.textSecondary,
-marginBottom: spacing.sm
-},
+    justifyContent: "center",
 
-statusText:{
-fontSize: typography.subtitle,
-fontWeight:"bold"
-},
+    padding: spacing.lg
 
-mainButton:{
-width:"100%",
-padding: spacing.lg,
-borderRadius: spacing.sm,
-alignItems:"center",
-marginBottom: spacing.md
-},
+  },
 
-mainButtonText:{
-color: colors.white,
-fontSize: typography.button,
-fontWeight:"bold"
-},
 
-secondaryButton: {
-  marginBottom: spacing.md,
-  alignItems: "center"
-},
+  header: {
 
-secondaryText:{
-fontSize: typography.body,
-color: colors.primary
-},
+    alignItems: "center",
 
-logoutButton: {
-  marginTop: spacing.sm,
-  alignItems: "center"
-},
+    marginBottom: spacing.xl
 
-logoutText:{
-fontSize: typography.caption,
-color: colors.textSecondary
-}
+  },
+
+
+  logo: {
+
+    width: 120,
+
+    height: 120,
+
+    borderRadius: 30
+
+  },
+
+
+  title: {
+
+    marginTop: spacing.sm,
+
+    fontSize: 26,
+
+    fontWeight: "600",
+
+    color: colors.textPrimary
+
+  },
+
+
+  subtitle: {
+
+    marginTop: spacing.xs,
+
+    fontSize: typography.caption,
+
+    color: colors.textSecondary
+
+  },
+
+
+  statusCard: {
+
+    backgroundColor: "#FFFFFF",
+
+    padding: spacing.lg,
+
+    borderRadius: 22,
+
+    marginBottom: spacing.xl,
+
+    alignItems: "center",
+
+    shadowColor: "#2D3047",
+
+    shadowOpacity: .08,
+
+    shadowRadius: 16,
+
+    shadowOffset: { width: 0, height: 6 },
+
+    elevation: 6
+
+  },
+
+
+  statusLabel: {
+
+    fontSize: typography.caption,
+
+    color: colors.textSecondary,
+
+    marginBottom: spacing.sm
+
+  },
+
+
+  statusText: {
+
+    fontSize: 22,
+
+    fontWeight: "600"
+
+  },
+
+
+  mainButton: {
+
+    padding: spacing.lg,
+
+    borderRadius: 20,
+
+    alignItems: "center",
+
+    marginBottom: spacing.xl
+
+  },
+
+
+  mainButtonText: {
+
+    color: "white",
+
+    fontSize: 18,
+
+    fontWeight: "600"
+
+  },
+
+
+  actionsContainer: {
+
+    alignItems: "center"
+
+  },
+
+
+  alertButton: {
+
+    marginBottom: spacing.md
+
+  },
+
+
+  alertText: {
+
+    color: colors.primary,
+
+    fontSize: typography.body
+
+  },
+
+
+  logoutButton: {
+
+
+  },
+
+
+  logoutText: {
+
+    color: colors.textSecondary,
+
+    fontSize: typography.caption
+
+  }
 
 });

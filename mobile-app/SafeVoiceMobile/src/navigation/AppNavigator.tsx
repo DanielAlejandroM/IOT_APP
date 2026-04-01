@@ -7,6 +7,7 @@ import LoginScreen from "../screen/LoginScreen";
 import RegisterScreen from "../screen/RegisterScreen";
 import MonitoringScreen from "../screen/MonitoringScreen";
 import AlertsScreen from "../screen/AlertsScreen";
+import AlertDetailScreen from "../screen/AlertDetailScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -31,11 +32,13 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRoute}>
+      <Stack.Navigator screenOptions={{ headerShown:false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Monitoring" component={MonitoringScreen} />
         <Stack.Screen name="Alerts" component={AlertsScreen} />
+        <Stack.Screen name="AlertDetail" component={AlertDetailScreen} />
+        
       </Stack.Navigator>
     </NavigationContainer>
   );

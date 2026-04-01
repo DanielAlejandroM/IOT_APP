@@ -5,155 +5,363 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  Image
 } from "react-native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { colors, spacing, typography } from "../theme";
 
+const logo = require("../assets/safevoice_logo.png");
+
+
 const mockAlerts = [
+
   {
     id: "1",
     location: "Av. América y Universitaria",
     time: "Hace 2 min",
-    severity: "high",
+    severity: "high"
   },
+
   {
     id: "2",
     location: "La Gasca",
     time: "Hace 5 min",
-    severity: "medium",
-  },
+    severity: "medium"
+  }
+
 ];
 
-export default function AlertsScreen() {
+
+export default function AlertsScreen({ navigation }: any) {
+
   const confirmSupport = (alertId: string) => {
+
     console.log("Confirmando apoyo:", alertId);
+
   };
+
+
+  const openMap = (alert: any) => {
+
+    navigation.navigate("AlertDetail", {
+
+      alert
+
+    });
+
+  };
+
 
   const renderItem = ({ item }: any) => {
+
     const severityColor =
+
       item.severity === "high"
+
         ? colors.alertHigh
+
         : colors.alertMedium;
 
+
     return (
+
       <View style={styles.card}>
-        {/* Severity indicator */}
+
+
         <View
+
           style={[
+
             styles.severityIndicator,
-            { backgroundColor: severityColor },
+
+            { backgroundColor: severityColor }
+
           ]}
+
         />
 
-        {/* Content */}
+
         <View style={styles.cardContent}>
+
+
           <Text style={styles.location}>
+
             📍 {item.location}
+
           </Text>
+
 
           <Text style={styles.time}>
+
             ⏱ {item.time}
+
           </Text>
 
-          <TouchableOpacity
-            style={[
-              styles.supportButton,
-              { backgroundColor: severityColor },
-            ]}
-            onPress={() => confirmSupport(item.id)}
-          >
-            <Text style={styles.supportText}>
-              Confirmar apoyo
-            </Text>
-          </TouchableOpacity>
+
+          <View style={styles.actionsRow}>
+
+
+            <TouchableOpacity
+
+              style={styles.mapButton}
+
+              onPress={() => openMap(item)}
+
+            >
+
+              <Text style={styles.mapText}>
+
+                Ver mapa
+
+              </Text>
+
+            </TouchableOpacity>
+
+
+            <TouchableOpacity
+
+              style={[
+
+                styles.supportButton,
+
+                { backgroundColor: severityColor }
+
+              ]}
+
+              onPress={() => confirmSupport(item.id)}
+
+            >
+
+              <Text style={styles.supportText}>
+
+                Confirmar apoyo
+
+              </Text>
+
+            </TouchableOpacity>
+
+
+          </View>
+
+
         </View>
+
+
       </View>
+
     );
+
   };
 
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <Text style={styles.header}>
-        Alertas cercanas
-      </Text>
 
-      {/* Subtitle */}
-      <Text style={styles.subtitle}>
-        Personas cerca de ti necesitan ayuda
-      </Text>
+    <SafeAreaView style={styles.container}>
 
-      {/* List */}
+
+      <View style={styles.header}>
+
+        <Image source={logo} style={styles.logo} />
+
+        <Text style={styles.title}>
+
+          Alertas cercanas
+
+        </Text>
+
+        <Text style={styles.subtitle}>
+
+          Personas cerca de ti necesitan ayuda
+
+        </Text>
+
+      </View>
+
+
       <FlatList
+
         data={mockAlerts}
+
         keyExtractor={(item) => item.id}
+
         renderItem={renderItem}
+
       />
-    </View>
+
+
+    </SafeAreaView>
+
   );
+
 }
+
+
 
 const styles = StyleSheet.create({
 
-container:{
-flex:1,
-backgroundColor: colors.background,
-padding: spacing.lg
-},
+  container: {
 
-header:{
-fontSize: typography.title,
-fontWeight:"bold",
-color: colors.textPrimary,
-marginBottom: spacing.xs
-},
+    flex: 1,
 
-subtitle:{
-fontSize: typography.caption,
-color: colors.textSecondary,
-marginBottom: spacing.lg
-},
+    backgroundColor: colors.background,
 
-card:{
-flexDirection:"row",
-backgroundColor: colors.surface,
-borderRadius: spacing.sm,
-marginBottom: spacing.md,
-overflow:"hidden"
-},
+    padding: spacing.lg
 
-severityIndicator:{
-width: spacing.xs
-},
+  },
 
-cardContent:{
-flex:1,
-padding: spacing.lg
-},
 
-location:{
-fontSize: typography.body,
-fontWeight:"600",
-color: colors.textPrimary,
-marginBottom: spacing.xs
-},
+  header: {
 
-time:{
-fontSize: typography.caption,
-color: colors.textSecondary,
-marginBottom: spacing.sm
-},
+    alignItems: "center",
 
-supportButton: {
-  paddingVertical: spacing.sm,
-  borderRadius: spacing.sm,
-  alignItems: "center",
-},
+    marginBottom: spacing.lg
 
-supportText:{
-color: colors.white,
-fontWeight:"bold",
-fontSize: typography.caption
-}
+  },
+
+
+  logo: {
+
+    width: 70,
+
+    height: 70,
+
+    marginBottom: spacing.sm
+
+  },
+
+
+  title: {
+
+    fontSize: typography.title,
+
+    fontWeight: "600",
+
+    color: colors.textPrimary
+
+  },
+
+
+  subtitle: {
+
+    fontSize: typography.caption,
+
+    color: colors.textSecondary
+
+  },
+
+
+  card: {
+
+    flexDirection: "row",
+
+    backgroundColor: "#FFFFFF",
+
+    borderRadius: 20,
+
+    marginBottom: spacing.md,
+
+    overflow: "hidden",
+
+    shadowColor: "#2D3047",
+
+    shadowOpacity: .08,
+
+    shadowRadius: 14,
+
+    shadowOffset: { width: 0, height: 5 },
+
+    elevation: 5
+
+  },
+
+
+  severityIndicator: {
+
+    width: 6
+
+  },
+
+
+  cardContent: {
+
+    flex: 1,
+
+    padding: spacing.lg
+
+  },
+
+
+  location: {
+
+    fontSize: typography.body,
+
+    fontWeight: "600",
+
+    color: colors.textPrimary,
+
+    marginBottom: spacing.xs
+
+  },
+
+
+  time: {
+
+    fontSize: typography.caption,
+
+    color: colors.textSecondary,
+
+    marginBottom: spacing.md
+
+  },
+
+
+  actionsRow: {
+
+    flexDirection: "row",
+
+    justifyContent: "space-between"
+
+  },
+
+
+  mapButton: {
+
+
+    paddingVertical: spacing.sm,
+
+    paddingHorizontal: spacing.md
+
+  },
+
+
+  mapText: {
+
+    color: colors.primary,
+
+    fontWeight: "600"
+
+  },
+
+
+  supportButton: {
+
+    paddingVertical: spacing.sm,
+
+    paddingHorizontal: spacing.md,
+
+    borderRadius: 12
+
+  },
+
+
+  supportText: {
+
+    color: "white",
+
+    fontWeight: "600"
+
+  }
 
 });
