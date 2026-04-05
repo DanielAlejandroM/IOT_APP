@@ -9,12 +9,12 @@ from google.colab import files
 from IPython.display import Audio, display
 
 """
-#tflite"""
+"""#MODELO
 
 model = hub.load("https://tfhub.dev/google/yamnet/1")
 print(model.signatures)
 
-"""#MODELO
+
 
 #Patrones
 """
