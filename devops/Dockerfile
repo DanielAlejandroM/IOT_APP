@@ -56,4 +56,4 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
 # ==============================
 # Start
 # ==============================
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

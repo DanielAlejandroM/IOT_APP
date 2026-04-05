@@ -30,6 +30,7 @@ def create_alert_endpoint(
     new_alert = create_alert(
         db=db,
         event_type=alert.event_type,
+        alert_type=alert.alert_type,
         lat=alert.lat,
         lng=alert.lng,
         user_id=current_user.id
