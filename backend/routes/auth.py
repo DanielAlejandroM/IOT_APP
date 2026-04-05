@@ -41,8 +41,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     logger.info(f"Login attempt: {user.email}")
 
     if not db_user:
-        logger.warning(f"Invalid credentials: {user.email}")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        logger.warning(f"Credenciales Invalidas: {user.email}")
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
     token = create_access_token({
         "sub": db_user.email
