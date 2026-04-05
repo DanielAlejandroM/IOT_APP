@@ -3,6 +3,7 @@ from pydantic import BaseModel, EmailStr, field_validator, Field
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
+    usuario: str
     
     @field_validator('password')
     @classmethod
@@ -30,6 +31,7 @@ class Token(BaseModel):
 
 class AlertCreate(BaseModel):
     event_type: str = Field(..., min_length=3)
+    alert_type: str
     lat: float
     lng: float
 
@@ -37,6 +39,7 @@ class AlertCreate(BaseModel):
 class AlertResponse(BaseModel):
     id: int
     event_type: str
+    alert_type: str
     lat: float
     lng: float
 
