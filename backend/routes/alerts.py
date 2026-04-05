@@ -7,6 +7,7 @@ from models.database import Alert                        # ← agregar esto
 from services.alert_service import create_alert
 from routes.auth import get_current_user
 from utils.logger import get_logger
+from models.database import Alert, User
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 logger = get_logger("alerts")
@@ -47,16 +48,15 @@ def get_all_alerts(
     current_user = Depends(get_current_user)
 ):
     total = db.query(Alert).count()
-    logger.info(f"User {current_user.email} retrieving alerts")
 
     if todo:
-        alerts = db.query(Alert).order_by(Alert.timestamp.desc()).all()
+        alerts = db.query(Alert, User).join(User, Alert.user_id == User.id).order_by(Alert.timestamp.desc()).all()
         paginas = 1
         pagina_actual = 1
     else:
-        limite = 5
+        limite = 10
         offset = (pagina - 1) * limite
-        alerts = db.query(Alert).order_by(Alert.timestamp.desc()).offset(offset).limit(limite).all()
+        alerts = db.query(Alert, User).join(User, Alert.user_id == User.id).order_by(Alert.timestamp.desc()).offset(offset).limit(limite).all()
         paginas = (total + limite - 1) // limite
         pagina_actual = pagina
 
@@ -72,8 +72,12 @@ def get_all_alerts(
                 "lat": a.lat,
                 "lng": a.lng,
                 "timestamp": a.timestamp,
-                "user_id": a.user_id
+                "usuario": {
+                    "id": u.id,
+                    "nombre": u.usuario,
+                    "email": u.email
+                }
             }
-            for a in alerts
+            for a, u in alerts
         ]
     }
