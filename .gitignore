@@ -278,3 +278,8 @@ Thumbs.db
 venv/
 env/
 .env
+
+# La base de datos .> como la carpeta postgres_data/ crea carpetas automaticamente
+# PostgreSQL NO guarda tablas como archivos legibles
+
+devops/postgres_data/
