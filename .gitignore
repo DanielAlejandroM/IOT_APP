@@ -1,5 +1,5 @@
 # ==================== PYTHON ====================
-# Byte-compiled / optimized / DLL files
+# Byte-piled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
@@ -142,7 +142,7 @@ Icon
 .TemporaryItems
 .Trashes
 .VolumeIcon.icns
-.com.apple.timemachine.donotpresent
+..apple.timemachine.donotpresent
 
 # Directories potentially created on remote AFP share
 .AppleDB
@@ -278,3 +278,8 @@ Thumbs.db
 venv/
 env/
 .env
+
+# La base de datos .> como la carpeta postgres_data/ crea carpetas automaticamente
+# PostgreSQL NO guarda tablas como archivos legibles
+
+devops/postgres_data/
