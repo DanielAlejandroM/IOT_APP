@@ -4,14 +4,16 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image
+  Image,
+  PermissionsAndroid,
+  Platform,
+  Alert
 } from "react-native";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import { colors, spacing, typography } from "../theme";
+import SafeVoiceNative from "../native/SafeVoiceNative";
 
 const logo = require("../assets/safevoice_logo.png");
 
@@ -21,11 +23,46 @@ export default function MonitoringScreen({ navigation }: any) {
   const [isMonitoring, setIsMonitoring] = useState(false);
 
 
-  const toggleMonitoring = () => {
+const requestPermissions = async () => {
+  if (Platform.OS !== "android") return true;
 
-    setIsMonitoring(!isMonitoring);
+  const mic = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+  );
 
-  };
+  const fine = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+  );
+
+  return (
+    mic === PermissionsAndroid.RESULTS.GRANTED &&
+    fine === PermissionsAndroid.RESULTS.GRANTED
+  );
+};
+
+const toggleMonitoring = async () => {
+  try {
+    if (!isMonitoring) {
+      const granted = await requestPermissions();
+
+      if (!granted) {
+        Alert.alert(
+          "Permisos requeridos",
+          "Debes conceder permisos de micrófono y ubicación"
+        );
+        return;
+      }
+
+      await SafeVoiceNative.startMonitoring();
+      setIsMonitoring(true);
+    } else {
+      await SafeVoiceNative.stopMonitoring();
+      setIsMonitoring(false);
+    }
+  } catch (error) {
+    Alert.alert("Error", "No se pudo cambiar el estado del monitoreo");
+  }
+};
 
 
   const logout = async () => {
