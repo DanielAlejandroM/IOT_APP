@@ -18,7 +18,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-def create_user(db: Session, email: str, password: str):
+def create_user(db: Session, email: str, password: str, usuario:str):
 
     # 🔴 validar duplicado
     existing_user = db.query(User).filter(User.email == email).first()
@@ -30,7 +30,8 @@ def create_user(db: Session, email: str, password: str):
 
     user = User(
         email=email,
-        password_hash=hashed_password
+        password_hash=hashed_password,
+        usuario=usuario
     )
 
     db.add(user)

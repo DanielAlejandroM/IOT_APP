@@ -28,7 +28,7 @@ def get_db():
 @router.post("/register", response_model=UserResponse)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     try:
-        new_user = create_user(db, user.email, user.password)
+        new_user = create_user(db, user.email, user.password, user.usuario)
         return new_user
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
