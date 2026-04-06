@@ -8,13 +8,12 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
-import android.util.Log.d
 import androidx.core.app.NotificationCompat
 import com.safevoicemobile.R
 import com.safevoicemobile.audio.AudioRecorderManager
-import com.safevoicemobile.audio.RmsDetector
 import com.safevoicemobile.location.SafeVoiceLocationManager
-import com.safevoicemobile.network.AlertRepository
+import com.safevoicemobile.ml.AudioClassifierHelper
+import com.safevoicemobile.network.EventRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,24 +25,32 @@ class AudioMonitoringService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private lateinit var audioRecorderManager: AudioRecorderManager
-    private lateinit var rmsDetector: RmsDetector
     private lateinit var locationManager: SafeVoiceLocationManager
-    private lateinit var alertRepository: AlertRepository
+    private lateinit var eventRepository: EventRepository
+    private lateinit var classifier: AudioClassifierHelper
 
     @Volatile
     private var isRunning = false
 
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
+    }
+
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "onCreate() -> inicializando servicio")
+
         createNotificationChannel()
 
         audioRecorderManager = AudioRecorderManager()
-        rmsDetector = RmsDetector()
         locationManager = SafeVoiceLocationManager(this)
-        alertRepository = AlertRepository(this)
+        eventRepository = EventRepository()
+        classifier = AudioClassifierHelper(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "onStartCommand() -> servicio recibido")
+
         startForeground(NOTIFICATION_ID, buildNotification())
 
         if (!isRunning) {
@@ -51,32 +58,67 @@ class AudioMonitoringService : Service() {
             startMonitoringLoop()
         }
 
+        Log.d(TAG, "Servicio en foreground correctamente")
         return START_STICKY
     }
 
     private fun startMonitoringLoop() {
+        Log.d(TAG, "startMonitoringLoop() -> iniciando monitoreo continuo")
+
         scope.launch {
             try {
                 audioRecorderManager.startRecording { window ->
-                    val result = rmsDetector.analyze(window)
+                    Log.d(TAG, "Nueva ventana recibida para clasificación: samples=${window.size}")
 
-                    d(
-                        TAG,
-                        "RMS=${result.rms}, dBFS=${result.db}, hits=${result.consecutiveHits}, dangerous=${result.isDangerous}"
+                    val prediction = classifier.classify(window) ?: return@startRecording
+
+                    Log.d(TAG, "Predicción=${prediction.label}, score=${prediction.score}")
+
+                    val highRisk = setOf(
+                        "Explosion [rojo]",
+                        "Gunshot, gunfire [rojo]",
+                        "Machine gun [rojo]",
+                        "Fusillade [rojo]",
+                        "Artillery fire [rojo]",
+                        "Boom [rojo]",
+                        "Glass [rojo]",
+                        "Shatter [rojo]",
+                        "Bang [rojo]",
+                        "Slap, smack [rojo]",
+                        "Whack, thwack [rojo]",
+                        "Breaking [rojo]"
                     )
 
-                    if (result.isDangerous) {
-                        val location = locationManager.getCurrentLocation()
+                    val mediumRisk = setOf(
+                        "Shout [naranja]",
+                        "Bellow [naranja]",
+                        "Yell [naranja]",
+                        "Screaming [naranja]",
+                        "Crying, sobbing [naranja]",
+                        "Wail, moan [naranja]",
+                        "Groan [naranja]",
+                        "Gasp [naranja]",
+                        "Alarm [naranja]",
+                        "Siren [naranja]",
+                        "Civil defense siren [naranja]",
+                        "Smoke detector, smoke alarm [naranja]",
+                        "Fire alarm [naranja]"
+                    )
 
-                        alertRepository.sendAlert(
-                            rms = result.rms,
-                            db = result.db,
-                            severity = result.level,
-                            latitude = location?.latitude,
-                            longitude = location?.longitude
-                        )
+                    when {
+                        prediction.label in highRisk && prediction.score >= 0.45f -> {
+                            Log.w(TAG, "RIESGO ALTO DETECTADO -> ${prediction.label} (${prediction.score})")
+                            triggerAlert("HIGH", prediction.label, prediction.score)
+                        }
 
-                        d(TAG, "Alerta enviada al backend")
+                        prediction.label in mediumRisk && prediction.score >= 0.35f -> {
+                            Log.w(TAG, "RIESGO MEDIO DETECTADO -> ${prediction.label} (${prediction.score})")
+                            triggerAlert("MEDIUM", prediction.label, prediction.score)
+                        }
+
+                        else -> {
+                            Log.d(TAG, "Sin alerta -> ${prediction.label} (${prediction.score})")
+                        }
                     }
                 }
             } catch (e: Exception) {
@@ -85,9 +127,35 @@ class AudioMonitoringService : Service() {
         }
     }
 
+    private suspend fun triggerAlert(severity: String, label: String, score: Float) {
+        val location = locationManager.getCurrentLocation()
+
+        Log.w(
+            TAG,
+            "PRE-API -> label=$label, score=$score, severity=$severity, lat=${location?.latitude}, lng=${location?.longitude}"
+        )
+
+        // TEMPORAL: usa un userId fijo para pruebas
+        val userId = "uuid-123"
+
+        eventRepository.sendDetectedEvent(
+            userId = userId,
+            detectedClass = label,
+            score = score,
+            severity = severity,
+            latitude = location?.latitude,
+            longitude = location?.longitude
+        )
+//        Log.d(TAG, "Nueva ventana recibida para clasificación: samples=${window.size}")
+//        Log.d(TAG, "Predicción=${prediction.label}, score=${prediction.score}")
+//        Log.w(TAG, "RIESGO ALTO DETECTADO -> ${prediction.label} (${prediction.score})")
+//        Log.w(TAG, "RIESGO MEDIO DETECTADO -> ${prediction.label} (${prediction.score})")
+//        Log.d(TAG, "Sin alerta -> ${prediction.label} (${prediction.score})")
+    }
+
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("SAFEVOICE activo")
             .setContentText("Monitoreando audio en segundo plano")
             .setOngoing(true)
@@ -101,19 +169,19 @@ class AudioMonitoringService : Service() {
                 "SAFEVOICE Monitoring",
                 NotificationManager.IMPORTANCE_LOW
             )
+
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
     }
 
     override fun onDestroy() {
+        Log.d(TAG, "onDestroy() -> servicio detenido")
         isRunning = false
         audioRecorderManager.stopRecording()
         scope.cancel()
         super.onDestroy()
     }
-
-    override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
         private const val TAG = "AudioMonitoringSvc"
