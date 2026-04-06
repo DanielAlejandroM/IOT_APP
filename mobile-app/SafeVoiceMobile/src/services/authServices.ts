@@ -1,12 +1,12 @@
 import apiClient from "./apiClient"
 
 export const registerUser = async (
-    nombre: string,
+    usuario: string,
     email: string,
     password: string
 ) => {
     const response = await apiClient.post("/auth/register", {
-        nombre,
+        usuario,
         email,
         password,
     });

@@ -16,6 +16,7 @@ import Icon from "react-native-vector-icons/Feather";
 import { registerUser } from "../services/authServices";
 
 import { colors, spacing, typography } from "../theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const logo = require("../assets/safevoice_logo.png");
 
@@ -32,7 +33,7 @@ export default function RegisterScreen({ navigation }: any) {
 
     const handleRegister = async () => {
 
-        if (!email || !password) {
+        if (!username || !email || !password) {
 
             setMessage("Completa los campos");
 
@@ -45,6 +46,7 @@ export default function RegisterScreen({ navigation }: any) {
             setLoading(true);
 
             await registerUser(username, email, password);
+            await AsyncStorage.setItem("user_name", username);
 
             setIsError(false);
 
