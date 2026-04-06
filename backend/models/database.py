@@ -23,6 +23,7 @@ class User(Base):
     # ==============================
     created_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
+    monitoring_active = Column(Boolean, default=False)
     
 
 class Alert(Base):
