@@ -8,54 +8,36 @@ import {
     Image,
     ActivityIndicator
 } from "react-native";
-
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import Icon from "react-native-vector-icons/Feather";
-
 import { loginUser } from "../services/authServices";
-
 import { colors, spacing, typography } from "../theme";
+
 
 const logo = require("../assets/safevoice_logo.png");
 
 export default function LoginScreen({ navigation }: any) {
 
     const [email, setEmail] = React.useState("");
-
     const [password, setPassword] = React.useState("");
-
     const [message, setMessage] = React.useState("");
-
     const [loading, setLoading] = React.useState(false);
-
 
     const handleLogin = async () => {
 
         if (!email || !password) {
-
             setMessage("Completa los campos");
-
             return;
-
         }
-
         try {
-
             setLoading(true);
-
             const response = await loginUser(email, password);
+            const token = response.access_token;
+            await AsyncStorage.setItem("access_token", response.access_token);
 
-            await AsyncStorage.setItem(
-
-                "access_token",
-
-                response.access_token
-
-            );
-
+            console.log("Token guardado:", token);
+    
             navigation.replace("Monitoring");
 
         } catch (error) {
@@ -353,10 +335,11 @@ const styles = StyleSheet.create({
     message: {
 
         marginTop: spacing.md,
-
         textAlign: "center",
+        color: "#f36c63",
+        fontSize: 18,
+        fontWeight: "600"
 
-        color: "#FFD166"
 
     }
 
