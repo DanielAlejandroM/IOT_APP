@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 
@@ -127,4 +127,29 @@ def get_all_alerts(
             for a, u in alerts
         ]
     }
-    
+
+
+@router.post("/{alert_id}/respond")
+def respond_to_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    # Verificar que la alerta existe
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alerta no encontrada")
+
+    # Verificar que no sea su propia alerta
+    if alert.user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="No puedes responder tu propia alerta")
+
+    return {
+        "mensaje": "Apoyo confirmado",
+        "alert_id": alert_id,
+        "respondido_por": {
+            "id": current_user.id,
+            "nombre": current_user.usuario,
+            "email": current_user.email
+        }
+    }
