@@ -41,8 +41,8 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     logger.info(f"Login attempt: {user.email}")
 
     if not db_user:
-        logger.warning(f"Invalid credentials: {user.email}")
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        logger.warning(f"Credenciales Invalidas: {user.email}")
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
     token = create_access_token({
         "sub": db_user.email
@@ -94,3 +94,18 @@ def get_current_user(
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/users/me/monitoring/toggle")
+def toggle_monitoring(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    current_user.monitoring_active = not current_user.monitoring_active
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "monitoring_active": current_user.monitoring_active,
+        "mensaje": "Monitoreo activado ✅" if current_user.monitoring_active else "Monitoreo desactivado ⛔"
+    }

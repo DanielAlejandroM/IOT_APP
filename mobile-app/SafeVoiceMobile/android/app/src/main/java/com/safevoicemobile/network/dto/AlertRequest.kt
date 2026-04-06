@@ -2,8 +2,8 @@ package com.safevoicemobile.network.dto
 
 data class AlertRequest(
     val type: String,
-    val rms: Double,
-    val db: Double,
+    val detectedClass: String,
+    val score: Float,
     val severity: String,
     val latitude: Double?,
     val longitude: Double?,
