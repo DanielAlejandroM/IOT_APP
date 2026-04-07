@@ -1,13 +1,11 @@
 package com.safevoicemobile.network
 
 import android.util.Log
-import com.safevoicemobile.network.dto.CommentRequest
-import com.safevoicemobile.network.dto.GeoRequest
+import com.safevoicemobile.network.dto.AlertRequest
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.UUID
 
 class EventRepository {
 
@@ -23,64 +21,37 @@ class EventRepository {
             .build()
 
         api = Retrofit.Builder()
-            .baseUrl("http://192.168.1.50:8000/")
+            .baseUrl("http://192.168.3.178:8000/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
     }
 
-    suspend fun sendDetectedEvent(
-        userId: String,
-        detectedClass: String,
-        score: Float,
-        severity: String,
-        latitude: Double?,
-        longitude: Double?
+    suspend fun sendAlert(
+        eventType: String,
+        alertType: String,
+        lat: Double,
+        lng: Double
     ) {
-        val riskAnalysisId = UUID.randomUUID().toString()
-
-        val text = "Detección local: clase=$detectedClass, score=$score"
-
         try {
-            val commentResponse = api.createComment(
-                CommentRequest(
-                    user_id = userId,
-                    text = text,
-                    risk = severity,
-                    risk_analysis_id = riskAnalysisId
-                )
+            val payload = AlertRequest(
+                event_type = eventType,
+                alert_type = alertType,
+                lat = lat,
+                lng = lng
             )
 
-            Log.d(
+            Log.w("EventRepository", "POST /alerts -> body=$payload")
+
+            val response = api.createAlert(payload)
+
+            Log.w(
                 "EventRepository",
-                "POST /comments -> code=${commentResponse.code()}, success=${commentResponse.isSuccessful}"
+                "POST /alerts -> code=${response.code()}, success=${response.isSuccessful}"
             )
         } catch (e: Exception) {
-            Log.e("EventRepository", "Error enviando /comments: ${e.message}", e)
-        }
-
-        if (latitude != null && longitude != null) {
-            try {
-                val geoResponse = api.createGeoEvent(
-                    GeoRequest(
-                        user_id = userId,
-                        lat = latitude,
-                        lon = longitude,
-                        description = "Evento detectado: $detectedClass ($severity)",
-                        risk_analysis_id = riskAnalysisId
-                    )
-                )
-
-                Log.d(
-                    "EventRepository",
-                    "POST /geo -> code=${geoResponse.code()}, success=${geoResponse.isSuccessful}"
-                )
-            } catch (e: Exception) {
-                Log.e("EventRepository", "Error enviando /geo: ${e.message}", e)
-            }
-        } else {
-            Log.w("EventRepository", "No se envió /geo porque la ubicación es null")
+            Log.e("EventRepository", "Error enviando /alerts: ${e.message}", e)
         }
     }
 }

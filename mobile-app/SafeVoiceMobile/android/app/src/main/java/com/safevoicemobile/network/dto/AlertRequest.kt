@@ -1,12 +1,8 @@
 package com.safevoicemobile.network.dto
 
 data class AlertRequest(
-    val type: String,
-    val detectedClass: String,
-    val score: Float,
-    val severity: String,
-    val latitude: Double?,
-    val longitude: Double?,
-    val source: String = "android-edge",
-    val audioTransmitted: Boolean = false
+    val event_type: String,
+    val alert_type: String,
+    val lat: Double,
+    val lng: Double
 )

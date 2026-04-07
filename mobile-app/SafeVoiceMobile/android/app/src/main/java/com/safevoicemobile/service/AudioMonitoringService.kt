@@ -20,6 +20,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
+data class AlertCandidate(
+    val alertType: String,
+    val label: String,
+    val score: Float
+)
+
 class AudioMonitoringService : Service() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -72,53 +78,23 @@ class AudioMonitoringService : Service() {
 
                     val prediction = classifier.classify(window) ?: return@startRecording
 
-                    Log.d(TAG, "Predicción=${prediction.label}, score=${prediction.score}")
+                    Log.d(TAG, "Top prediction=${prediction.label}, score=${prediction.score}")
 
-                    val highRisk = setOf(
-                        "Explosion [rojo]",
-                        "Gunshot, gunfire [rojo]",
-                        "Machine gun [rojo]",
-                        "Fusillade [rojo]",
-                        "Artillery fire [rojo]",
-                        "Boom [rojo]",
-                        "Glass [rojo]",
-                        "Shatter [rojo]",
-                        "Bang [rojo]",
-                        "Slap, smack [rojo]",
-                        "Whack, thwack [rojo]",
-                        "Breaking [rojo]"
-                    )
+                    val candidate = findAlertCandidate(prediction.allResults)
 
-                    val mediumRisk = setOf(
-                        "Shout [naranja]",
-                        "Bellow [naranja]",
-                        "Yell [naranja]",
-                        "Screaming [naranja]",
-                        "Crying, sobbing [naranja]",
-                        "Wail, moan [naranja]",
-                        "Groan [naranja]",
-                        "Gasp [naranja]",
-                        "Alarm [naranja]",
-                        "Siren [naranja]",
-                        "Civil defense siren [naranja]",
-                        "Smoke detector, smoke alarm [naranja]",
-                        "Fire alarm [naranja]"
-                    )
+                    if (candidate != null) {
+                        Log.w(
+                            TAG,
+                            "ALERTA CANDIDATA -> type=${candidate.alertType}, label=${candidate.label}, score=${candidate.score}"
+                        )
 
-                    when {
-                        prediction.label in highRisk && prediction.score >= 0.45f -> {
-                            Log.w(TAG, "RIESGO ALTO DETECTADO -> ${prediction.label} (${prediction.score})")
-                            triggerAlert("HIGH", prediction.label, prediction.score)
-                        }
-
-                        prediction.label in mediumRisk && prediction.score >= 0.35f -> {
-                            Log.w(TAG, "RIESGO MEDIO DETECTADO -> ${prediction.label} (${prediction.score})")
-                            triggerAlert("MEDIUM", prediction.label, prediction.score)
-                        }
-
-                        else -> {
-                            Log.d(TAG, "Sin alerta -> ${prediction.label} (${prediction.score})")
-                        }
+                        triggerAlert(
+                            alertType = candidate.alertType,
+                            label = candidate.label,
+                            score = candidate.score
+                        )
+                    } else {
+                        Log.d(TAG, "Sin alerta -> top=${prediction.label}, score=${prediction.score}")
                     }
                 }
             } catch (e: Exception) {
@@ -127,30 +103,45 @@ class AudioMonitoringService : Service() {
         }
     }
 
-    private suspend fun triggerAlert(severity: String, label: String, score: Float) {
+    private fun findAlertCandidate(results: List<Pair<String, Float>>): AlertCandidate? {
+        val red = results
+            .filter { it.first.contains("[rojo]") }
+            .maxByOrNull { it.second }
+
+        val orange = results
+            .filter { it.first.contains("[naranja]") }
+            .maxByOrNull { it.second }
+
+        return when {
+            red != null && red.second >= 0.45f -> {
+                AlertCandidate("rojo", red.first, red.second)
+            }
+            orange != null && orange.second >= 0.35f -> {
+                AlertCandidate("naranja", orange.first, orange.second)
+            }
+            else -> null
+        }
+    }
+
+    private suspend fun triggerAlert(alertType: String, label: String, score: Float) {
         val location = locationManager.getCurrentLocation()
 
         Log.w(
             TAG,
-            "PRE-API -> label=$label, score=$score, severity=$severity, lat=${location?.latitude}, lng=${location?.longitude}"
+            "PRE-API -> event_type=panic_button, alert_type=$alertType, label=$label, score=$score, lat=${location?.latitude}, lng=${location?.longitude}"
         )
 
-        // TEMPORAL: usa un userId fijo para pruebas
-        val userId = "uuid-123"
+        if (location?.latitude == null || location.longitude == null) {
+            Log.e(TAG, "No se enviará alerta: ubicación nula")
+            return
+        }
 
-        eventRepository.sendDetectedEvent(
-            userId = userId,
-            detectedClass = label,
-            score = score,
-            severity = severity,
-            latitude = location?.latitude,
-            longitude = location?.longitude
+        eventRepository.sendAlert(
+            eventType = "panic_button",
+            alertType = alertType,
+            lat = location.latitude,
+            lng = location.longitude
         )
-//        Log.d(TAG, "Nueva ventana recibida para clasificación: samples=${window.size}")
-//        Log.d(TAG, "Predicción=${prediction.label}, score=${prediction.score}")
-//        Log.w(TAG, "RIESGO ALTO DETECTADO -> ${prediction.label} (${prediction.score})")
-//        Log.w(TAG, "RIESGO MEDIO DETECTADO -> ${prediction.label} (${prediction.score})")
-//        Log.d(TAG, "Sin alerta -> ${prediction.label} (${prediction.score})")
     }
 
     private fun buildNotification(): Notification {
