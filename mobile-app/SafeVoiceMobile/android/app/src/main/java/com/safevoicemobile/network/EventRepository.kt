@@ -16,7 +16,19 @@ class EventRepository {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
+        val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyQG1haWwuY29tIiwiZXhwIjoxNzc1NDUzOTY0fQ.U7-FLfHBaiY0dkDLoGjPeaWgQlQuEwAMymmaoV49AWk"
+
+        val authInterceptor = okhttp3.Interceptor { chain ->
+            val request = chain.request().newBuilder()
+                .addHeader("Authorization", "Bearer $token")
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            chain.proceed(request)
+        }
+
         val client = OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
             .addInterceptor(logger)
             .build()
 
