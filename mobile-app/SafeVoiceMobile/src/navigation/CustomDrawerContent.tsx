@@ -57,10 +57,10 @@ export default function CustomDrawerContent(props: any) {
 
       {/* Logout */}
       <TouchableOpacity
-        style={{ padding: 20, marginTop: 550 }}
+        style={{ padding: 20, marginTop: 500 }}
         onPress={logout}
       >
-        <Text style={{ color: "red", fontWeight: "600" }}>
+        <Text style={{ color: "red", fontWeight: "800" }}>
           Cerrar sesión
         </Text>
       </TouchableOpacity>

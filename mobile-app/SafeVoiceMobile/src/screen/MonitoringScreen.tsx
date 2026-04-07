@@ -195,28 +195,6 @@ export default function MonitoringScreen({ navigation }: any) {
 
       <View style={styles.actionsContainer}>
 
-        <TouchableOpacity
-          style={styles.alertButton}
-          onPress={() => navigation.navigate("Alerts")}
-        >
-          <Text style={styles.alertText}>
-            Ver alertas cercanas
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={logout}
-        >
-          <Text style={styles.logoutText}>
-
-            Cerrar sesión
-
-          </Text>
-
-        </TouchableOpacity>
-
-
       </View>
 
 
