@@ -1,11 +1,12 @@
-import {NativeModules} from 'react-native';
+import { NativeModules } from 'react-native';
 
-const {SafeVoiceModule} = NativeModules;
+const { SafeVoiceModule } = NativeModules;
 
 export default {
-  startMonitoring: async () => {
-    return SafeVoiceModule.startMonitoring();
+  startMonitoring: async (strToken: string) => {
+    return SafeVoiceModule.startMonitoring(strToken);
   },
+
   stopMonitoring: async () => {
     return SafeVoiceModule.stopMonitoring();
   },

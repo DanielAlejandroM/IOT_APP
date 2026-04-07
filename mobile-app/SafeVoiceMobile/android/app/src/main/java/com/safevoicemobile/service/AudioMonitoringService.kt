@@ -34,6 +34,7 @@ class AudioMonitoringService : Service() {
     private lateinit var locationManager: SafeVoiceLocationManager
     private lateinit var eventRepository: EventRepository
     private lateinit var classifier: AudioClassifierHelper
+    private var accessToken: String? = null
 
     @Volatile
     private var isRunning = false
@@ -56,6 +57,15 @@ class AudioMonitoringService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand() -> servicio recibido")
+
+        accessToken = intent?.getStringExtra("ACCESS_TOKEN")
+        Log.d(TAG, "Token recibido en service: $accessToken")
+
+        if (accessToken.isNullOrBlank()) {
+            Log.e(TAG, "No se recibió ACCESS_TOKEN en el servicio")
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         startForeground(NOTIFICATION_ID, buildNotification())
 
@@ -136,7 +146,13 @@ class AudioMonitoringService : Service() {
             return
         }
 
+        if (accessToken.isNullOrBlank()) {
+            Log.e(TAG, "No se enviará alerta: token nulo")
+            return
+        }
+
         eventRepository.sendAlert(
+            token = accessToken!!,
             eventType = "panic_button",
             alertType = alertType,
             lat = location.latitude,

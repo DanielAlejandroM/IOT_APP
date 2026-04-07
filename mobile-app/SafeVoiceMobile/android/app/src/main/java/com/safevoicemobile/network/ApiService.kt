@@ -3,12 +3,14 @@ package com.safevoicemobile.network
 import com.safevoicemobile.network.dto.AlertRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.POST
 
 interface ApiService {
 
     @POST("alerts")
-    suspend fun createAlert(
+    suspend fun sendAlert(
+        @Header("Authorization") token: String,
         @Body request: AlertRequest
     ): Response<Unit>
 }

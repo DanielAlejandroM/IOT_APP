@@ -16,19 +16,7 @@ class EventRepository {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyQG1haWwuY29tIiwiZXhwIjoxNzc1NDUzOTY0fQ.U7-FLfHBaiY0dkDLoGjPeaWgQlQuEwAMymmaoV49AWk"
-
-        val authInterceptor = okhttp3.Interceptor { chain ->
-            val request = chain.request().newBuilder()
-                .addHeader("Authorization", "Bearer $token")
-                .addHeader("Content-Type", "application/json")
-                .build()
-
-            chain.proceed(request)
-        }
-
         val client = OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
             .addInterceptor(logger)
             .build()
 
@@ -41,6 +29,7 @@ class EventRepository {
     }
 
     suspend fun sendAlert(
+        token: String,
         eventType: String,
         alertType: String,
         lat: Double,
@@ -55,15 +44,20 @@ class EventRepository {
             )
 
             Log.w("EventRepository", "POST /alerts -> body=$payload")
+            Log.d("EventRepository", "Token usado: $token")
 
-            val response = api.createAlert(payload)
+            val response = api.sendAlert(
+                token = "Bearer $token",
+                request = payload
+            )
 
             Log.w(
                 "EventRepository",
                 "POST /alerts -> code=${response.code()}, success=${response.isSuccessful}"
             )
+
         } catch (e: Exception) {
-            Log.e("EventRepository", "Error enviando /alerts: ${e.message}", e)
+            Log.e("EventRepository", "Error enviando alertas: ${e.message}", e)
         }
     }
 }
