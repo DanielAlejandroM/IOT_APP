@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Boolean
 from database.connection import Base
 from datetime import datetime
 
@@ -16,12 +16,14 @@ class User(Base):
     # ==============================
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
+    usuario = Column(String, nullable=False)
 
     # ==============================
     # (OPCIONAL MVP+)
     # ==============================
-    # created_at = Column(DateTime, default=datetime.utcnow)
-    # is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    monitoring_active = Column(Boolean, default=False)
     
 
 class Alert(Base):
@@ -29,6 +31,7 @@ class Alert(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     event_type = Column(String, nullable=False)
+    alert_type = Column(String, nullable=False)
 
     lat = Column(Float, nullable=False)
     lng = Column(Float, nullable=False)

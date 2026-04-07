@@ -53,24 +53,13 @@ const toggleMonitoring = async () => {
         return;
       }
 
-      const token = await AsyncStorage.getItem("access_token");
-
-      if (!token) {
-        Alert.alert(
-          "Sesión no disponible",
-          "No se encontró el token del usuario. Inicia sesión nuevamente."
-        );
-        return;
-      }
-
-      await SafeVoiceNative.startMonitoring(token);
+      await SafeVoiceNative.startMonitoring();
       setIsMonitoring(true);
     } else {
       await SafeVoiceNative.stopMonitoring();
       setIsMonitoring(false);
     }
   } catch (error) {
-    console.error("Error en toggleMonitoring:", error);
     Alert.alert("Error", "No se pudo cambiar el estado del monitoreo");
   }
 };
