@@ -25,6 +25,9 @@ export default function MonitoringScreen({ navigation }: any) {
   const [recentAlerts, setRecentAlerts] = useState<AlertItem[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
 
+  // Ventana de visibilidad: 4h 59min
+  const ALERT_WINDOW_MS = 299 * 60 * 1000;
+
   const requestPermissions = async () => {
     if (Platform.OS !== "android") return true;
 
@@ -42,14 +45,50 @@ export default function MonitoringScreen({ navigation }: any) {
     );
   };
 
-  const filterLastMinuteAlerts = (alerts: AlertItem[]) => {
-    const now = new Date().getTime();
+  const filterRecentAlerts = (alerts: AlertItem[]) => {
+    const now = Date.now();
 
     return alerts.filter((alert) => {
-      const alertTime = new Date(alert.timestamp).getTime();
+      const alertTime = new Date(alert.timestamp + "Z").getTime();
       const diffMs = now - alertTime;
-      return diffMs <= 60 * 1000;
+
+      console.log("[Monitoring] now:", now);
+      console.log("[Monitoring] alertTime UTC:", alertTime);
+      console.log("[Monitoring] diffMs:", diffMs, "alert id:", alert.id);
+
+      return diffMs >= 0 && diffMs <= ALERT_WINDOW_MS;
     });
+  };
+
+  const formatRelativeTime = (timestamp: string) => {
+    const now = Date.now();
+    const alertTime = new Date(timestamp + "Z").getTime();
+    const diffMs = now - alertTime;
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const diffSeconds = Math.floor(diffMs / 1000);
+
+    if (diffMinutes <= 0) {
+      return `Hace ${Math.max(diffSeconds, 1)} seg`;
+    }
+
+    return `Hace ${diffMinutes} min`;
+  };
+
+  const formatTime = (timestamp: string) => {
+    const utcDate = new Date(timestamp + "Z");
+
+    return utcDate.toLocaleTimeString("es-EC", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
+
+  const getSeverityColor = (type: string) => {
+    if (type === "rojo") return "#E9424B";
+    if (type === "naranja") return "#F0A15A";
+    return "#BDBDBD";
   };
 
   const loadRecentAlerts = async () => {
@@ -64,13 +103,18 @@ export default function MonitoringScreen({ navigation }: any) {
         return;
       }
 
-      const data = await getNearbyAlerts(token);
+      // Usa coordenadas fijas o reemplázalas por GPS real luego
+      const lat = -0.1807;
+      const lng = -78.4678;
+
+      const data = await getNearbyAlerts(token, lat, lng);
 
       console.log("[Monitoring] nearby alerts response:", data);
+      console.log("[Monitoring] resultados raw:", data.resultados);
 
-      const filtered = filterLastMinuteAlerts(data.resultados || []);
+      const filtered = filterRecentAlerts(data.resultados || []);
 
-      console.log("[Monitoring] alertas < 1 min:", filtered);
+      console.log("[Monitoring] alertas filtradas:", filtered);
 
       setRecentAlerts(filtered);
     } catch (error) {
@@ -125,6 +169,20 @@ export default function MonitoringScreen({ navigation }: any) {
     }
   };
 
+  const openMap = (alert: AlertItem) => {
+    Alert.alert(
+      "Mapa",
+      `Aquí luego puedes abrir el mapa con:\nLat: ${alert.lat}\nLng: ${alert.lng}`
+    );
+  };
+
+  const confirmSupport = (alert: AlertItem) => {
+    Alert.alert(
+      "Confirmar apoyo",
+      `Aquí luego puedes conectar la acción de apoyo para la alerta #${alert.id}`
+    );
+  };
+
   const logout = async () => {
     await AsyncStorage.removeItem("access_token");
     navigation.replace("Login");
@@ -169,44 +227,6 @@ export default function MonitoringScreen({ navigation }: any) {
           </Text>
         </View>
 
-        <View style={styles.nearbyCard}>
-          <Text style={styles.nearbyTitle}>Alertas recientes cercanas</Text>
-
-          {loadingAlerts ? (
-            <Text style={styles.nearbyEmpty}>Cargando alertas...</Text>
-          ) : recentAlerts.length === 0 ? (
-            <Text style={styles.nearbyEmpty}>
-              No hay alertas registradas en el último minuto
-            </Text>
-          ) : (
-            recentAlerts.slice(0, 3).map((alert) => (
-              <View key={alert.id} style={styles.nearbyItem}>
-                <Text
-                  style={[
-                    styles.nearbyType,
-                    {
-                      color:
-                        alert.alert_type === "rojo"
-                          ? colors.alertHigh
-                          : "#F39C12",
-                    },
-                  ]}
-                >
-                  {alert.alert_type.toUpperCase()} - {alert.event_type}
-                </Text>
-
-                <Text style={styles.nearbyMeta}>
-                  {alert.usuario?.nombre} · {alert.timestamp}
-                </Text>
-
-                <Text style={styles.nearbyMeta}>
-                  Lat: {alert.lat} | Lng: {alert.lng}
-                </Text>
-              </View>
-            ))
-          )}
-        </View>
-
         <TouchableOpacity
           style={[
             styles.mainButton,
@@ -222,6 +242,66 @@ export default function MonitoringScreen({ navigation }: any) {
             {isMonitoring ? "DETENER MONITOREO" : "ACTIVAR MONITOREO"}
           </Text>
         </TouchableOpacity>
+
+        <View style={styles.nearbySection}>
+          <Text style={styles.nearbySectionTitle}>Alertas cercanas</Text>
+          <Text style={styles.nearbySectionSubtitle}>
+            Personas cerca de ti necesitan ayuda
+          </Text>
+
+          {loadingAlerts ? (
+            <Text style={styles.nearbyEmpty}>Cargando alertas...</Text>
+          ) : recentAlerts.length === 0 ? (
+            <Text style={styles.nearbyEmpty}>
+              No hay alertas registradas en las últimas 4h 59min
+            </Text>
+          ) : (
+            recentAlerts.slice(0, 3).map((alert) => (
+              <View key={alert.id} style={styles.card}>
+                <View
+                  style={[
+                    styles.severityIndicator,
+                    { backgroundColor: getSeverityColor(alert.alert_type) },
+                  ]}
+                />
+
+                <View style={styles.cardContent}>
+                  <Text style={styles.location}>
+                    📍 {alert.usuario?.nombre || "Alerta cerca de tu ubicación"}
+                  </Text>
+
+                  <Text style={styles.coords}>
+                    Lat: {alert.lat}, Lng: {alert.lng}
+                  </Text>
+
+                  <Text style={styles.time}>
+                    ◔ {formatRelativeTime(alert.timestamp)} •{" "}
+                    {formatTime(alert.timestamp)}
+                  </Text>
+
+                  <View style={styles.actionsRow}>
+                    <TouchableOpacity
+                      style={styles.mapButton}
+                      onPress={() => openMap(alert)}
+                    >
+                      <Text style={styles.mapText}>Ver mapa</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[
+                        styles.supportButton,
+                        { backgroundColor: getSeverityColor(alert.alert_type) },
+                      ]}
+                      onPress={() => confirmSupport(alert)}
+                    >
+                      <Text style={styles.supportText}>Confirmar apoyo</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ))
+          )}
+        </View>
 
         <View style={styles.actionsContainer}>
           <TouchableOpacity
@@ -244,34 +324,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    padding: spacing.lg,
   },
 
   scrollContent: {
     flexGrow: 1,
-    justifyContent: "center",
-    padding: spacing.lg,
   },
 
   header: {
     alignItems: "center",
-    marginBottom: spacing.xl,
+    marginBottom: spacing.lg,
   },
 
   logo: {
-    width: 120,
-    height: 120,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    marginBottom: spacing.sm,
   },
 
   title: {
-    marginTop: spacing.sm,
-    fontSize: 26,
+    fontSize: typography.title,
     fontWeight: "600",
     color: colors.textPrimary,
   },
 
   subtitle: {
-    marginTop: spacing.xs,
     fontSize: typography.caption,
     color: colors.textSecondary,
   },
@@ -300,47 +377,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  nearbyCard: {
-    backgroundColor: "#FFFFFF",
-    padding: spacing.lg,
-    borderRadius: 22,
-    marginBottom: spacing.xl,
-    shadowColor: "#2D3047",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-
-  nearbyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: spacing.md,
-  },
-
-  nearbyEmpty: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-  },
-
-  nearbyItem: {
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: "#EEF2F5",
-  },
-
-  nearbyType: {
-    fontSize: typography.body,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-
-  nearbyMeta: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-  },
-
   mainButton: {
     padding: spacing.lg,
     borderRadius: 20,
@@ -351,6 +387,94 @@ const styles = StyleSheet.create({
   mainButtonText: {
     color: "white",
     fontSize: 18,
+    fontWeight: "600",
+  },
+
+  nearbySection: {
+    marginBottom: spacing.xl,
+  },
+
+  nearbySectionTitle: {
+    fontSize: typography.title,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+
+  nearbySectionSubtitle: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+
+  nearbyEmpty: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+
+  card: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    marginBottom: spacing.md,
+    overflow: "hidden",
+    shadowColor: "#2D3047",
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
+  },
+
+  severityIndicator: {
+    width: 6,
+  },
+
+  cardContent: {
+    flex: 1,
+    padding: spacing.lg,
+  },
+
+  location: {
+    fontSize: typography.body,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+
+  coords: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
+  },
+
+  time: {
+    fontSize: typography.caption,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+
+  actionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  mapButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+
+  mapText: {
+    color: colors.primary,
+    fontWeight: "600",
+  },
+
+  supportButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 12,
+  },
+
+  supportText: {
+    color: "white",
     fontWeight: "600",
   },
 
