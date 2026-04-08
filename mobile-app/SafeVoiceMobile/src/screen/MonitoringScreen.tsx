@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -14,78 +14,66 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { colors, spacing, typography } from "../theme";
 import SafeVoiceNative from "../native/SafeVoiceNative";
-import apiClient from "../services/apiClient";
 
 const logo = require("../assets/safevoice_logo.png");
-
 
 
 export default function MonitoringScreen({ navigation }: any) {
 
   const [isMonitoring, setIsMonitoring] = useState(false);
-  const [alertaReciente, setAlertaReciente] = useState(false);
-  const [activo, setActivo] = useState(false);
-
-  useEffect(() => {
-    verificarBackend();
-
-    const intervalo = setInterval(() => {
-      verificarBackend();
-    }, 5000);
-
-    return () => clearInterval(intervalo);
-  }, []);
-
-  const verificarBackend = async () => {
-    try {
-      await apiClient.get("/health");
-      setActivo(true);
-    } catch {
-      setActivo(false);
-    }
-  };
 
 
-  const requestPermissions = async () => {
-    if (Platform.OS !== "android") return true;
+const requestPermissions = async () => {
+  if (Platform.OS !== "android") return true;
 
-    const mic = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
-    );
+  const mic = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.RECORD_AUDIO
+  );
 
-    const fine = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
-    );
+  const fine = await PermissionsAndroid.request(
+    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+  );
 
-    return (
-      mic === PermissionsAndroid.RESULTS.GRANTED &&
-      fine === PermissionsAndroid.RESULTS.GRANTED
-    );
-  };
+  return (
+    mic === PermissionsAndroid.RESULTS.GRANTED &&
+    fine === PermissionsAndroid.RESULTS.GRANTED
+  );
+};
 
-  const toggleMonitoring = async () => {
-    try {
-      if (!isMonitoring) {
-        const granted = await requestPermissions();
+const toggleMonitoring = async () => {
+  try {
+    if (!isMonitoring) {
+      const granted = await requestPermissions();
 
-        if (!granted) {
-          Alert.alert(
-            "Permisos requeridos",
-            "Debes conceder permisos de micrófono y ubicación"
-          );
-          return;
-        }
-
-        await SafeVoiceNative.startMonitoring();
-        setIsMonitoring(true);
-      } else {
-        await SafeVoiceNative.stopMonitoring();
-        setIsMonitoring(false);
+      if (!granted) {
+        Alert.alert(
+          "Permisos requeridos",
+          "Debes conceder permisos de micrófono y ubicación"
+        );
+        return;
       }
-    } catch (error) {
-      Alert.alert("Error", "No se pudo cambiar el estado del monitoreo");
+
+
+      const token = await AsyncStorage.getItem("access_token");
+
+      console.log("[Monitoring] token:", token);
+
+      if(!token){
+          Alert.alert("Error", "No se encontró token de acceso");
+          return;
+          }
+
+
+      await SafeVoiceNative.startMonitoring(token);
+      setIsMonitoring(true);
+    } else {
+      await SafeVoiceNative.stopMonitoring();
+      setIsMonitoring(false);
     }
-  };
+  } catch (error) {
+    Alert.alert("Error", "No se pudo cambiar el estado del monitoreo");
+  }
+};
 
 
   const logout = async () => {
@@ -101,99 +89,167 @@ export default function MonitoringScreen({ navigation }: any) {
 
     <SafeAreaView style={styles.container}>
 
-      <View
-        style={{
-          position: "absolute",
-          right: 10,
-          top: 10,
-          backgroundColor: activo ? "#E6F9ED" : "#FFEAEA",
-          paddingHorizontal: 12,
-          paddingVertical: 6,
-          borderRadius: 14,
-          elevation: 5,
-          zIndex: 500
-        }}
-      >
-        <Text style={{ fontWeight: "800" }}>
-          {activo ? "ACTIVE 🟢" : "OFFLINE 🔴"}
-        </Text>
-      </View>
       <View style={styles.header}>
+
+
         <Image
+
           source={logo}
+
           style={[
+
             styles.logo,
+
             {
+
               opacity: isMonitoring ? 1 : .35
+
             }
+
           ]}
+
         />
 
+
         <Text style={styles.title}>
+
           SAFEVOICE
+
         </Text>
+
 
         <Text style={styles.subtitle}>
+
           Monitoreo comunitario inteligente
+
         </Text>
+
+
       </View>
+
 
       <View style={styles.statusCard}>
+
         <Text style={styles.statusLabel}>
+
           Estado actual
+
         </Text>
+
 
         <Text
+
           style={[
+
             styles.statusText,
+
             {
+
               color: isMonitoring
+
                 ? colors.success
+
                 : colors.textSecondary
+
             }
+
           ]}
+
         >
+
           {
+
             isMonitoring
+
               ? "Monitoreo activo"
+
               : "Monitoreo detenido"
+
           }
+
         </Text>
+
+
       </View>
 
-      <TouchableOpacity
-        style={{
-          position: "absolute",
-          left: 10,
-          top: 10
-        }}
-        onPress={() => navigation.openDrawer()}
-      >
-        <Text style={{ fontSize: 24 }}>☰</Text>
-      </TouchableOpacity>
 
 
       <TouchableOpacity
+
         style={[
+
           styles.mainButton,
+
           {
+
             backgroundColor: isMonitoring
+
               ? colors.alertHigh
+
               : colors.primary
+
           }
+
         ]}
+
         onPress={toggleMonitoring}
+
       >
+
         <Text style={styles.mainButtonText}>
+
           {
+
             isMonitoring
+
               ? "DETENER MONITOREO"
+
               : "ACTIVAR MONITOREO"
+
           }
+
         </Text>
+
       </TouchableOpacity>
+
+
 
       <View style={styles.actionsContainer}>
+
+
+        <TouchableOpacity
+
+          style={styles.alertButton}
+
+          onPress={() => navigation.navigate("Alerts")}
+
+        >
+
+          <Text style={styles.alertText}>
+
+            Ver alertas cercanas
+
+          </Text>
+
+        </TouchableOpacity>
+
+
+        <TouchableOpacity
+
+          style={styles.logoutButton}
+
+          onPress={logout}
+
+        >
+
+          <Text style={styles.logoutText}>
+
+            Cerrar sesión
+
+          </Text>
+
+        </TouchableOpacity>
+
 
       </View>
 

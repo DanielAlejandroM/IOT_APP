@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import com.facebook.react.bridge.*
 import com.safevoicemobile.service.AudioMonitoringService
-//import com.safevoicemobile.service.AudioMonitoringService
+
 
 class SafeVoiceModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -14,7 +14,7 @@ class SafeVoiceModule(private val reactContext: ReactApplicationContext) :
     override fun getName(): String = "SafeVoiceModule"
 
     @ReactMethod
-    fun startMonitoring(promise: Promise) {
+    fun startMonitoring(token: String, promise: Promise) {
         try {
             val hasMic = ContextCompat.checkSelfPermission(
                 reactContext,
@@ -26,8 +26,12 @@ class SafeVoiceModule(private val reactContext: ReactApplicationContext) :
                 return
             }
 
+            // 🔥 AQUÍ YA TIENES EL TOKEN
             val intent = Intent(reactContext, AudioMonitoringService::class.java)
+            intent.putExtra("ACCESS_TOKEN", token)
+
             ContextCompat.startForegroundService(reactContext, intent)
+
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("START_ERROR", e)
