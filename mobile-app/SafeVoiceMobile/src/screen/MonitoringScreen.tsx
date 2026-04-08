@@ -53,7 +53,18 @@ const toggleMonitoring = async () => {
         return;
       }
 
-      await SafeVoiceNative.startMonitoring();
+
+      const token = await AsyncStorage.getItem("access_token");
+
+      console.log("[Monitoring] token:", token);
+
+      if(!token){
+          Alert.alert("Error", "No se encontró token de acceso");
+          return;
+          }
+
+
+      await SafeVoiceNative.startMonitoring(token);
       setIsMonitoring(true);
     } else {
       await SafeVoiceNative.stopMonitoring();
