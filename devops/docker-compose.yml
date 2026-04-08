@@ -1,30 +1,17 @@
-# ================================================================================
-# DOCKER COMPOSE - THREAT DETECTION API COMPLETO
-# ================================================================================
-#
-# Servicios:
-# - PostgreSQL 16 con PostGIS (Base de datos)
-# - FastAPI Backend (Aplicación)
-#
-# Uso:
-#   docker-compose up -d        (Iniciar servicios)
-#   docker-compose ps           (Ver estado)
-#   docker-compose logs -f      (Ver logs)
-#   docker-compose down         (Detener servicios)
-#   docker-compose down -v      (Detener y eliminar volúmenes)
-#
-# ================================================================================
+#Archivo para pode levantar varios contenedores juntos
 
 #version: '3.9'
 
 services:
 
-  # ==============================
+  # Servicios:
   # PostgreSQL + PostGIS
-  # ==============================
+
   postgres:
     image: postgis/postgis:16-3.4
     container_name: threat-db
+
+    # carga variables desde el archivo - usa las variables del .env
 
     env_file:
       - .env
@@ -37,8 +24,13 @@ services:
     ports:
       - "5432:5432"
 
+
+    # guarda la bd en la pc, permite persistencia real
     volumes:
       - ./postgres_data:/var/lib/postgresql/data
+
+
+    # verifica si la db está lista
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
@@ -49,34 +41,9 @@ services:
     restart: unless-stopped
 
 
-  # ==============================
-  # AI SERVICE (NLP / Embeddings)
-  # ==============================
-  # ai-service:
-  #   build:
-  #     context: ..
-  #     dockerfile: devops/Dockerfile.ai
 
-  #   container_name: threat-ai
-
-  #   env_file:
-  #     - ../.env
-
-  #   ports:
-  #     - "8001:8001"
-
-  #   restart: unless-stopped
-
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-
-
-  # ==============================
   # BACKEND API
-  # ==============================
+
   backend:
     build:
       context: ..
@@ -90,10 +57,12 @@ services:
     ports:
       - "8000:8000"
 
-    # 🔥 SOLO desarrollo (hot reload)
+    # hace que el codigo local reemplace al contenedor (hot reload)
     volumes:
       - ../backend:/app
       - ../backend/firebase.json:/app/firebase.json
+
+    # el backend espera a la bd
 
     depends_on:
       postgres:
@@ -103,6 +72,8 @@ services:
 
     restart: unless-stopped
 
+    # valida el backend activo
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -110,16 +81,15 @@ services:
       retries: 3
 
 
-# ==============================
 # Volúmenes
-# ==============================
+
 volumes:
   postgres_data:
 
 
-# ==============================
 # Red
-# ==============================
+# los contenedores se conectan, se comunican por el nombre
+
 networks:
   default:
     name: threat-detection-network
