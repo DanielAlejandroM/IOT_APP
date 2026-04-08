@@ -4,11 +4,10 @@ from sqlalchemy import func, text
 
 from database.connection import SessionLocal
 from models.schemas import AlertCreate, AlertResponse
-from models.database import Alert                        # ← agregar esto
+from models.database import Alert, User
 from services.alert_service import create_alert
 from routes.auth import get_current_user
 from utils.logger import get_logger
-from models.database import Alert, User
 
 router = APIRouter(prefix="/alerts", tags=["alerts"])
 logger = get_logger("alerts")
@@ -47,9 +46,35 @@ def get_nearby_alerts(
     lat: float = Query(...),
     lng: float = Query(...),
     radio: int = Query(default=1000, ge=100, le=50000),
+    pagina: int = Query(default=1, ge=1),
+    limite: int = Query(default=10, ge=1, le=100),
+    todo: bool = Query(default=False),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
+    # Primero contamos el total sin paginar
+    count_sql = text("""
+        SELECT COUNT(*) 
+        FROM alerts a
+        WHERE ST_DWithin(
+            ST_MakePoint(a.lng, a.lat)::geography,
+            ST_MakePoint(:lng, :lat)::geography,
+            :radio
+        )
+    """)
+    total = db.execute(count_sql, {"lat": lat, "lng": lng, "radio": radio}).scalar()
+
+    if todo:
+        offset_val = 0
+        limit_val = total if total > 0 else 1  # traer todo
+        pagina_actual = 1
+        paginas = 1
+    else:
+        offset_val = (pagina - 1) * limite
+        limit_val = limite
+        paginas = (total + limite - 1) // limite if total > 0 else 1
+        pagina_actual = pagina
+
     sql = text("""
         SELECT 
             a.id, a.event_type, a.alert_type, a.lat, a.lng, a.timestamp, a.user_id,
@@ -61,13 +86,22 @@ def get_nearby_alerts(
             ST_MakePoint(:lng, :lat)::geography,
             :radio
         )
-        ORDER BY a.timestamp DESC
+        ORDER BY a.timestamp ASC
+        LIMIT :limite OFFSET :offset
     """)
 
-    resultado = db.execute(sql, {"lat": lat, "lng": lng, "radio": radio}).fetchall()
+    resultado = db.execute(sql, {
+        "lat": lat,
+        "lng": lng,
+        "radio": radio,
+        "limite": limit_val,
+        "offset": offset_val
+    }).fetchall()
 
     return {
-        "total": len(resultado),
+        "pagina": pagina_actual,
+        "total": total,
+        "paginas": paginas,
         "radio_metros": radio,
         "resultados": [
             {
@@ -86,9 +120,12 @@ def get_nearby_alerts(
             for row in resultado
         ]
     }
+
+
 @router.get("")
 def get_all_alerts(
     pagina: int = Query(default=1, ge=1),
+    limite: int = Query(default=10, ge=1, le=100),
     todo: bool = Query(default=False),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
@@ -96,14 +133,25 @@ def get_all_alerts(
     total = db.query(Alert).count()
 
     if todo:
-        alerts = db.query(Alert, User).join(User, Alert.user_id == User.id).order_by(Alert.timestamp.desc()).all()
+        alerts = (
+            db.query(Alert, User)
+            .join(User, Alert.user_id == User.id)
+            .order_by(Alert.timestamp.asc())  # ← ascendente
+            .all()
+        )
         paginas = 1
         pagina_actual = 1
     else:
-        limite = 10
         offset = (pagina - 1) * limite
-        alerts = db.query(Alert, User).join(User, Alert.user_id == User.id).order_by(Alert.timestamp.desc()).offset(offset).limit(limite).all()
-        paginas = (total + limite - 1) // limite
+        alerts = (
+            db.query(Alert, User)
+            .join(User, Alert.user_id == User.id)
+            .order_by(Alert.timestamp.asc())  # ← ascendente
+            .offset(offset)
+            .limit(limite)
+            .all()
+        )
+        paginas = (total + limite - 1) // limite if total > 0 else 1
         pagina_actual = pagina
 
     return {
@@ -135,12 +183,10 @@ def respond_to_alert(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    # Verificar que la alerta existe
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alerta no encontrada")
 
-    # Verificar que no sea su propia alerta
     if alert.user_id == current_user.id:
         raise HTTPException(status_code=400, detail="No puedes responder tu propia alerta")
 
