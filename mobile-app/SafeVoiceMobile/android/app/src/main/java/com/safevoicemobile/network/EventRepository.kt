@@ -21,7 +21,7 @@ class EventRepository {
             .build()
 
         api = Retrofit.Builder()
-            .baseUrl("http://192.168.3.178:8000/")
+            .baseUrl("http://192.168.1.27:8000/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
