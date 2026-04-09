@@ -41,21 +41,19 @@ export default function AlertsScreen({ navigation }: any) {
  ================================
  */
 
- const isRecentAlert = (timestamp: string) => {
+  const isRecentAlert = (timestamp: string) => {
 
-  const alertTime = new Date(timestamp + "Z").getTime();
+    const alertTime = new Date(timestamp + "Z").getTime();
 
-  const now = Date.now();
+    const now = Date.now();
 
-  const diffMs = now - alertTime;
+    const diffMs = now - alertTime;
 
-  const diffHours = diffMs / (1000 * 60 * 60);
+    const diffHours = diffMs / (1000 * 60 * 60);
 
-  console.log("Diff hours:", diffHours);
+    return diffHours >= 0 && diffHours <= 2;
 
-  return diffHours >= 0 && diffHours <= 2;
-
-};
+  };
 
   /*
  ================================
@@ -70,15 +68,8 @@ export default function AlertsScreen({ navigation }: any) {
       const currentUserEmail =
         await AsyncStorage.getItem("user_name");
 
-      console.log("Usuario actual:", currentUserEmail);
-
       const response =
         await apiClient.get("/alerts?todo=true");
-
-      console.log(
-        "TOTAL BACKEND:",
-        response.data.resultados.length
-      );
 
       const filteredAlerts =
         (response.data?.resultados ?? []).filter(
@@ -91,21 +82,11 @@ export default function AlertsScreen({ navigation }: any) {
             const stillValid =
               isRecentAlert(alert.timestamp);
 
-            console.log(
-              "ALERT USER:",
-              alert.usuario?.email
-            );
-
             return notMyAlert && stillValid;
 
           }
 
         );
-
-      console.log(
-        "TOTAL FILTRADAS:",
-        filteredAlerts.length
-      );
 
       setAlerts(filteredAlerts);
 
@@ -122,7 +103,7 @@ export default function AlertsScreen({ navigation }: any) {
 
   /*
  ================================
- AUTO REFRESH CADA 3 SEG
+ AUTO REFRESH
  ================================
  */
 
@@ -182,7 +163,7 @@ export default function AlertsScreen({ navigation }: any) {
   const timeAgo = (timestamp: string) => {
 
     const alertDate =
-      new Date(timestamp).getTime();
+      new Date(timestamp + "Z").getTime();
 
     const diff =
       Date.now() - alertDate;
@@ -254,67 +235,59 @@ export default function AlertsScreen({ navigation }: any) {
 
     return (
 
-      <View style={styles.cardContainer}>
+      <View
+        style={[
+          styles.card,
+          {
+            borderLeftWidth: 6,
+            borderLeftColor: style.color
+          }
+        ]}
+      >
 
-        <View
-          style={[
-            styles.priorityBar,
-            {
-              backgroundColor:
-                style.color
+        <Text style={styles.eventLabel}>
+          {style.label}
+        </Text>
+
+        <Text style={styles.user}>
+          👤 {item.usuario.nombre}
+        </Text>
+
+        <Text style={styles.time}>
+          ⏱ {timeAgo(item.timestamp)}
+        </Text>
+
+        <View style={styles.actions}>
+
+          <TouchableOpacity
+            onPress={() =>
+              openMap(
+                item.lat,
+                item.lng
+              )
             }
-          ]}
-        />
+          >
+            <Text style={styles.mapButton}>
+              Ver mapa
+            </Text>
+          </TouchableOpacity>
 
-        <View style={styles.card}>
-
-          <Text style={styles.eventLabel}>
-            {style.label}
-          </Text>
-
-          <Text style={styles.user}>
-            👤 {item.usuario.nombre}
-          </Text>
-
-          <Text style={styles.time}>
-            ⏱ {timeAgo(item.timestamp)}
-          </Text>
-
-          <View style={styles.actions}>
-
-            <TouchableOpacity
-              onPress={() =>
-                openMap(
-                  item.lat,
-                  item.lng
-                )
+          <TouchableOpacity
+            style={[
+              styles.supportButton,
+              {
+                backgroundColor:
+                  style.color
               }
-            >
-              <Text style={styles.mapButton}>
-                Ver mapa
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.supportButton,
-                {
-                  backgroundColor:
-                    style.color
-                }
-              ]}
-              onPress={() =>
-                confirmSupport(
-                  item.id
-                )
-              }
-            >
-              <Text style={styles.supportText}>
-                Confirmar apoyo
-              </Text>
-            </TouchableOpacity>
-
-          </View>
+            ]}
+            onPress={() =>
+              confirmSupport(item.id)
+            }
+          >
+            <Text style={styles.supportText}>
+              Confirmar apoyo
+            </Text>
+          </TouchableOpacity>
 
         </View>
 
@@ -358,6 +331,7 @@ export default function AlertsScreen({ navigation }: any) {
           item.id.toString()
         }
         renderItem={renderItem}
+        showsVerticalScrollIndicator={false}
       />
 
     </SafeAreaView>
@@ -422,30 +396,18 @@ const styles =
 
     },
 
-    cardContainer: {
-
-      flexDirection: "row",
-      width: "100%",
-      marginBottom: 14
-
-    },
-
-    priorityBar: {
-
-      width: 6,
-      borderRadius: 6
-
-    },
-
     card: {
 
-      flex: 1,
       backgroundColor:
         colors.surface,
+
       padding: 18,
+
       borderRadius: 18,
-      marginLeft: 10,
-      elevation: 2
+
+      marginBottom: 14,
+
+      elevation: 3
 
     },
 

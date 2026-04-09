@@ -219,6 +219,9 @@ export default function AlertHistoryScreen({ navigation }: any) {
 
             </TouchableOpacity>
 
+            <Text style={styles.header}>
+                Historial de alertas
+            </Text>
 
             <FlatList
 
@@ -330,7 +333,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingStart: 50,
         paddingEnd: 45,
-        paddingTop:50,
+        paddingTop: 50,
         backgroundColor: colors.background
 
 
@@ -392,6 +395,16 @@ const styles = StyleSheet.create({
         borderRadius: 20,
 
         marginBottom: 8
+
+    },
+    header: {
+
+      fontSize: 24,
+      fontWeight: "700",
+      textAlign: "center",
+      paddingBottom: 20,
+      color:
+        colors.textPrimary
 
     },
 
