@@ -86,8 +86,7 @@ def get_nearby_alerts(
             ST_MakePoint(:lng, :lat)::geography,
             :radio
         )
-        ORDER BY a.timestamp ASC
-        LIMIT :limite OFFSET :offset
+        ORDER BY a.timestamp DESC
     """)
 
     resultado = db.execute(sql, {
@@ -99,10 +98,6 @@ def get_nearby_alerts(
     }).fetchall()
 
     return {
-        "pagina": pagina_actual,
-        "total": total,
-        "paginas": paginas,
-        "radio_metros": radio,
         "resultados": [
             {
                 "id": row.id,
