@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { colors } from "../theme";
 
 export default function CustomDrawerContent(props: any) {
   const [userName, setUserName] = useState("");
@@ -25,12 +26,12 @@ export default function CustomDrawerContent(props: any) {
 
       {/* Nombre usuario */}
       <View style={{ padding: 20 }}>
-        <Text style={{ fontSize: 18, fontWeight: "bold" }}>
+        <Text style={{ fontSize: 24, fontWeight: "bold", color: colors.textPrimary}}>
           {userName || "Usuario"}
         </Text>
       </View>
-      
-      {/* Monitoreo */}
+
+      {/* Alertas cercanas */}
       <TouchableOpacity
         style={{ padding: 20 }}
         onPress={() => props.navigation.navigate("Monitoring")}
@@ -38,7 +39,8 @@ export default function CustomDrawerContent(props: any) {
         <Text>Monitoreo</Text>
       </TouchableOpacity>
 
-      
+
+
       {/* Alertas cercanas */}
       <TouchableOpacity
         style={{ padding: 20 }}
@@ -50,7 +52,7 @@ export default function CustomDrawerContent(props: any) {
       {/* Historial */}
       <TouchableOpacity
         style={{ padding: 20 }}
-        onPress={() => props.navigation.navigate("AlertDetail")}
+        onPress={() => props.navigation.navigate("AlertHistory")}
       >
         <Text>Historial de alertas</Text>
       </TouchableOpacity>

@@ -8,6 +8,7 @@ import RegisterScreen from "../screen/RegisterScreen";
 import MonitoringScreen from "../screen/MonitoringScreen";
 import AlertsScreen from "../screen/AlertsScreen";
 import AlertDetailScreen from "../screen/AlertDetailScreen";
+import AlertHistoryScreen from "../screen/AlertHistoryScreen";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 
 const Drawer = createDrawerNavigator();
@@ -42,6 +43,7 @@ export default function AppNavigator() {
         <Drawer.Screen name="Monitoring" component={MonitoringScreen} />
         <Drawer.Screen name="Alerts" component={AlertsScreen} />
         <Drawer.Screen name="AlertDetail" component={AlertDetailScreen} />
+        <Drawer.Screen name="AlertHistory" component={AlertHistoryScreen} />
       </Drawer.Navigator>
     );
   }
@@ -51,7 +53,7 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Monitoring" component={DrawerNavigator} />
+        <Stack.Screen name="MainDrawer" component={DrawerNavigator} />
         <Stack.Screen name="Alerts" component={AlertsScreen} />
         <Stack.Screen name="AlertDetail" component={AlertDetailScreen} />
 
