@@ -1,4 +1,39 @@
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# 📱 SafeVoice Mobile
+
+Aplicación móvil desarrollada en React Native para monitoreo comunitario inteligente mediante alertas geolocalizadas en tiempo real.
+
+Permite:
+
+- Activar monitoreo continuo
+- Detectar alertas cercanas
+- Visualizar historial de alertas
+- Integrarse con servicio nativo Android (foreground service)
+
+---
+
+# 🧰 Requisitos del sistema
+
+Antes de ejecutar el proyecto asegúrate de tener instalado:
+
+| Herramienta | Versión |
+|------------|---------|
+Node.js | 24.04.4
+npm | >= 10.x
+React Native CLI | 11.12.1
+Java JDK | 17 recomendado
+Android Studio | Última estable
+Gradle | incluido en proyecto
+
+Verificar versiones:
+
+```bash
+node -v
+npm -v
+npx react-native -v
+
+
+
 
 # Getting Started
 
