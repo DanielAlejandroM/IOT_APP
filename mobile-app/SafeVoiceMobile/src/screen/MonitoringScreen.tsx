@@ -11,24 +11,57 @@ import {
   ScrollView,
 } from "react-native";
 
-import { getNearbyAlerts } from "../services/nearbyAlertsService";
-import { AlertItem } from "../types/alerts";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { getNearbyAlerts } from "../services/nearbyAlertsService";
+import { AlertItem } from "../types/alerts";
+
 import { colors, spacing, typography } from "../theme";
 import SafeVoiceNative from "../native/SafeVoiceNative";
+import apiClient from "../services/apiClient";
 
 const logo = require("../assets/safevoice_logo.png");
 
+// ventana visible = 1 minuto
+const ALERT_WINDOW_MS = 60 * 1000;
+
 export default function MonitoringScreen({ navigation }: any) {
+
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [recentAlerts, setRecentAlerts] = useState<AlertItem[]>([]);
-  const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [activo, setActivo] = useState(false);
 
-  // Ventana de visibilidad: 4h 59min
-  const ALERT_WINDOW_MS = 299 * 60 * 1000;
+  /*
+ ================================
+ BACKEND STATUS
+ ================================
+ */
+
+  const verificarBackend = async () => {
+
+    try {
+
+      await apiClient.get("/health");
+
+      setActivo(true);
+
+    } catch {
+
+      setActivo(false);
+
+    }
+
+  };
+
+  /*
+ ================================
+ PERMISSIONS
+ ================================
+ */
 
   const requestPermissions = async () => {
+
     if (Platform.OS !== "android") return true;
 
     const mic = await PermissionsAndroid.request(
@@ -43,314 +76,454 @@ export default function MonitoringScreen({ navigation }: any) {
       mic === PermissionsAndroid.RESULTS.GRANTED &&
       fine === PermissionsAndroid.RESULTS.GRANTED
     );
+
   };
 
-  const filterRecentAlerts = (alerts: AlertItem[]) => {
-    const now = Date.now();
+  /*
+ ================================
+ ALERT FILTER (1 minuto + no propias)
+ ================================
+ */
 
-    return alerts.filter((alert) => {
-      const alertTime = new Date(alert.timestamp + "Z").getTime();
-      const diffMs = now - alertTime;
+  const filterRecentAlerts = async (alerts: AlertItem[]) => {
 
-      console.log("[Monitoring] now:", now);
-      console.log("[Monitoring] alertTime UTC:", alertTime);
-      console.log("[Monitoring] diffMs:", diffMs, "alert id:", alert.id);
+  const now = Date.now();
 
-      return diffMs >= 0 && diffMs <= ALERT_WINDOW_MS;
-    });
-  };
+  const currentUserName =
+    await AsyncStorage.getItem("user_name");
 
-  const formatRelativeTime = (timestamp: string) => {
-    const now = Date.now();
-    const alertTime = new Date(timestamp + "Z").getTime();
-    const diffMs = now - alertTime;
+  return alerts.filter(alert => {
 
-    const diffMinutes = Math.floor(diffMs / 60000);
-    const diffSeconds = Math.floor(diffMs / 1000);
+    const alertTime =
+      new Date(alert.timestamp + "Z").getTime();
 
-    if (diffMinutes <= 0) {
-      return `Hace ${Math.max(diffSeconds, 1)} seg`;
-    }
+    const diff =
+      now - alertTime;
 
-    return `Hace ${diffMinutes} min`;
-  };
+    console.log("DIFF MS:", diff);
 
-  const formatTime = (timestamp: string) => {
-    const utcDate = new Date(timestamp + "Z");
+    const isRecent =
+      diff >= 0 && diff <= ALERT_WINDOW_MS;
 
-    return utcDate.toLocaleTimeString("es-EC", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
+    const notMine =
+      alert.usuario?.email !== currentUserName;
 
-  const getSeverityColor = (type: string) => {
-    if (type === "rojo") return "#E9424B";
-    if (type === "naranja") return "#F0A15A";
-    return "#BDBDBD";
-  };
+    console.log("IS RECENT:", isRecent);
+    console.log("NOT MINE:", notMine);
+
+    return isRecent && notMine;
+
+  });
+
+};
+
+  /*
+ ================================
+ LOAD ALERTS
+ ================================
+ */
 
   const loadRecentAlerts = async () => {
-    try {
-      setLoadingAlerts(true);
 
-      const token = await AsyncStorage.getItem("access_token");
+    try {
+
+      const token =
+        await AsyncStorage.getItem("access_token");
 
       if (!token) {
-        console.log("[Monitoring] No hay token para consultar alertas cercanas");
+
         setRecentAlerts([]);
+
         return;
+
       }
 
-      // Usa coordenadas fijas o reemplázalas por GPS real luego
-      const lat = -0.1807;
-      const lng = -78.4678;
+      const lat = -0.1972097;
+      const lng = -78.5020647;
 
-      const data = await getNearbyAlerts(token, lat, lng);
+      const data =
+        await getNearbyAlerts(token, lat, lng);
 
-      console.log("[Monitoring] nearby alerts response:", data);
-      console.log("[Monitoring] resultados raw:", data.resultados);
-
-      const filtered = filterRecentAlerts(data.resultados || []);
-
-      console.log("[Monitoring] alertas filtradas:", filtered);
+      const filtered =
+        await filterRecentAlerts(
+          data.resultados ?? []
+        );
 
       setRecentAlerts(filtered);
-    } catch (error) {
-      console.log("[Monitoring] ERROR cargando alertas cercanas:", error);
+
+    } catch {
+
       setRecentAlerts([]);
-    } finally {
-      setLoadingAlerts(false);
+
     }
+
   };
 
+  /*
+ ================================
+ INIT
+ ================================
+ */
+
   useEffect(() => {
+
+    verificarBackend();
+
     loadRecentAlerts();
 
-    const interval = setInterval(() => {
-      loadRecentAlerts();
-    }, 15000);
+    const interval =
+      setInterval(loadRecentAlerts, 15000);
 
     return () => clearInterval(interval);
+
   }, []);
 
+  /*
+ ================================
+ MONITORING TOGGLE
+ ================================
+ */
+
   const toggleMonitoring = async () => {
+
     try {
+
       if (!isMonitoring) {
-        const granted = await requestPermissions();
+
+        const granted =
+          await requestPermissions();
 
         if (!granted) {
+
           Alert.alert(
             "Permisos requeridos",
-            "Debes conceder permisos de micrófono y ubicación"
+            "Debes conceder permisos"
           );
+
           return;
+
         }
 
-        const token = await AsyncStorage.getItem("access_token");
-
-        console.log("[Monitoring] token:", token);
+        const token =
+          await AsyncStorage.getItem("access_token");
+        console.log("TOKEN MONITORING:", token);
 
         if (!token) {
-          Alert.alert("Error", "No se encontró token de acceso");
+
+          Alert.alert("Error", "Token no encontrado");
+
           return;
+
         }
 
         await SafeVoiceNative.startMonitoring(token);
+        console.log("Simulando monitoreo activo");
         setIsMonitoring(true);
+
       } else {
+
         await SafeVoiceNative.stopMonitoring();
+
         setIsMonitoring(false);
+
       }
-    } catch (error) {
-      console.log("[Monitoring] ERROR toggleMonitoring:", error);
-      Alert.alert("Error", "No se pudo cambiar el estado del monitoreo");
+
+    } catch {
+
+      Alert.alert("Error", "No se pudo cambiar monitoreo");
+
     }
+
   };
 
-  const openMap = (alert: AlertItem) => {
-    Alert.alert(
-      "Mapa",
-      `Aquí luego puedes abrir el mapa con:\nLat: ${alert.lat}\nLng: ${alert.lng}`
-    );
+  /*
+ ================================
+ HELPERS
+ ================================
+ */
+
+  const getSeverityColor = (type: string) => {
+
+    if (type === "rojo") return "#E9424B";
+
+    if (type === "naranja") return "#F0A15A";
+
+    return "#BDBDBD";
+
   };
 
-  const confirmSupport = (alert: AlertItem) => {
-    Alert.alert(
-      "Confirmar apoyo",
-      `Aquí luego puedes conectar la acción de apoyo para la alerta #${alert.id}`
-    );
+  const formatRelativeTime = (timestamp: string) => {
+
+    const alertTime =
+      new Date(timestamp + "Z").getTime();
+
+    const diff =
+      Date.now() - alertTime;
+
+    const seconds =
+      Math.floor(diff / 1000);
+
+    return `Hace ${seconds}s`;
+
   };
+
+  /*
+ ================================
+ LOGOUT
+ ================================
+ */
 
   const logout = async () => {
+
     await AsyncStorage.removeItem("access_token");
+
     navigation.replace("Login");
+
   };
 
+  /*
+ ================================
+ UI
+ ================================
+ */
+
   return (
+
     <SafeAreaView style={styles.container}>
+
+      {/* BACKEND STATUS */}
+
+      <View
+        style={[
+          styles.backendBadge,
+          {
+            backgroundColor:
+              activo ? "#bcf5d1" : "#FFEAEA"
+          }
+        ]}
+      >
+
+        <Text style={{ fontWeight: "800" }}>
+          {activo ? "ACTIVE 🟢" : "OFFLINE 🔴"}
+        </Text>
+
+      </View>
+
+
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+
+        {/* HEADER */}
+
         <View style={styles.header}>
+
           <Image
             source={logo}
             style={[
               styles.logo,
-              {
-                opacity: isMonitoring ? 1 : 0.35,
-              },
+              { opacity: isMonitoring ? 1 : 0.4 }
             ]}
           />
 
-          <Text style={styles.title}>SAFEVOICE</Text>
+          <Text style={styles.title}>
+            SAFEVOICE
+          </Text>
 
           <Text style={styles.subtitle}>
             Monitoreo comunitario inteligente
           </Text>
+
         </View>
 
+
+        {/* STATUS */}
+
         <View style={styles.statusCard}>
-          <Text style={styles.statusLabel}>Estado actual</Text>
+
+          <Text style={styles.statusLabel}>
+            Estado actual
+          </Text>
 
           <Text
             style={[
               styles.statusText,
               {
-                color: isMonitoring ? colors.success : colors.textSecondary,
-              },
+                color:
+                  isMonitoring
+                    ? colors.success
+                    : colors.textSecondary
+              }
             ]}
           >
-            {isMonitoring ? "Monitoreo activo" : "Monitoreo detenido"}
+
+            {isMonitoring
+              ? "Monitoreo activo"
+              : "Monitoreo detenido"}
+
           </Text>
+
         </View>
+
+
+        {/* BUTTON */}
 
         <TouchableOpacity
           style={[
             styles.mainButton,
             {
-              backgroundColor: isMonitoring
-                ? colors.alertHigh
-                : colors.primary,
-            },
+              backgroundColor:
+                isMonitoring
+                  ? colors.monitoringInactive
+                  : colors.primary
+            }
           ]}
           onPress={toggleMonitoring}
         >
+
           <Text style={styles.mainButtonText}>
-            {isMonitoring ? "DETENER MONITOREO" : "ACTIVAR MONITOREO"}
+
+            {isMonitoring
+              ? "DETENER MONITOREO"
+              : "ACTIVAR MONITOREO"}
+
           </Text>
+
         </TouchableOpacity>
 
-        <View style={styles.nearbySection}>
-          <Text style={styles.nearbySectionTitle}>Alertas cercanas</Text>
-          <Text style={styles.nearbySectionSubtitle}>
-            Personas cerca de ti necesitan ayuda
-          </Text>
 
-          {loadingAlerts ? (
-            <Text style={styles.nearbyEmpty}>Cargando alertas...</Text>
-          ) : recentAlerts.length === 0 ? (
-            <Text style={styles.nearbyEmpty}>
-              No hay alertas registradas en las últimas 4h 59min
+        {/* ALERTAS (solo si existen) */}
+
+        {recentAlerts.length > 0 && (
+
+          <View style={styles.nearbySection}>
+
+            <Text style={styles.nearbySectionTitle}>
+              Alertas cercanas
             </Text>
-          ) : (
-            recentAlerts.slice(0, 3).map((alert) => (
-              <View key={alert.id} style={styles.card}>
+
+            <Text style={styles.nearbySectionSubtitle}>
+              Personas cerca de ti necesitan ayuda
+            </Text>
+
+
+            {recentAlerts.slice(0, 3).map(alert => (
+
+              <View
+                key={alert.id}
+                style={styles.card}
+              >
+
                 <View
                   style={[
                     styles.severityIndicator,
-                    { backgroundColor: getSeverityColor(alert.alert_type) },
+                    {
+                      backgroundColor:
+                        getSeverityColor(
+                          alert.alert_type
+                        )
+                    }
                   ]}
                 />
 
                 <View style={styles.cardContent}>
-                  <Text style={styles.location}>
-                    📍 {alert.usuario?.nombre || "Alerta cerca de tu ubicación"}
-                  </Text>
 
-                  <Text style={styles.coords}>
-                    Lat: {alert.lat}, Lng: {alert.lng}
+                  <Text style={styles.location}>
+                    👤 {alert.usuario.nombre}
                   </Text>
 
                   <Text style={styles.time}>
-                    ◔ {formatRelativeTime(alert.timestamp)} •{" "}
-                    {formatTime(alert.timestamp)}
+                    ⏱ {formatRelativeTime(
+                      alert.timestamp
+                    )}
                   </Text>
 
-                  <View style={styles.actionsRow}>
-                    <TouchableOpacity
-                      style={styles.mapButton}
-                      onPress={() => openMap(alert)}
-                    >
-                      <Text style={styles.mapText}>Ver mapa</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.supportButton,
-                        { backgroundColor: getSeverityColor(alert.alert_type) },
-                      ]}
-                      onPress={() => confirmSupport(alert)}
-                    >
-                      <Text style={styles.supportText}>Confirmar apoyo</Text>
-                    </TouchableOpacity>
-                  </View>
                 </View>
+
               </View>
-            ))
-          )}
-        </View>
 
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.alertButton}
-            onPress={() => navigation.navigate("Alerts")}
-          >
-            <Text style={styles.alertText}>Ver alertas cercanas</Text>
-          </TouchableOpacity>
+            ))}
 
-          <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-            <Text style={styles.logoutText}>Cerrar sesión</Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+
+        )}
+
+
+        {/* ACTIONS */}
+
+        <TouchableOpacity
+          style={{
+            position: "absolute",
+            left: 10,
+            top: 10
+          }}
+          onPress={() => navigation.openDrawer()}
+        >
+
+          <Text style={{ fontSize: 24 }}>☰</Text>
+
+        </TouchableOpacity>
+
       </ScrollView>
+
     </SafeAreaView>
+
   );
+
 }
 
+
+/*
+ ================================
+ STYLES
+ ================================
+ */
+
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: spacing.lg,
+    padding: spacing.lg
   },
 
   scrollContent: {
-    flexGrow: 1,
+    flexGrow: 1
+  },
+
+  backendBadge: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    elevation: 5,
+    zIndex: 500
   },
 
   header: {
     alignItems: "center",
-    marginBottom: spacing.lg,
+    marginTop: 75,
+    marginBottom: spacing.lg
   },
 
   logo: {
-    width: 70,
-    height: 70,
-    marginBottom: spacing.sm,
+    width: 120,
+    height: 120,
+    borderRadius: 30
   },
 
   title: {
     fontSize: typography.title,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: colors.textPrimary
   },
 
   subtitle: {
     fontSize: typography.caption,
-    color: colors.textSecondary,
+    color: colors.textSecondary
   },
 
   statusCard: {
@@ -359,57 +532,46 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     marginBottom: spacing.xl,
     alignItems: "center",
-    shadowColor: "#2D3047",
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    elevation: 6
   },
 
   statusLabel: {
     fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
+    color: colors.textSecondary
   },
 
   statusText: {
     fontSize: 22,
-    fontWeight: "600",
+    fontWeight: "600"
   },
 
   mainButton: {
     padding: spacing.lg,
     borderRadius: 20,
     alignItems: "center",
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xl
   },
 
   mainButtonText: {
     color: "white",
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "600"
   },
 
   nearbySection: {
-    marginBottom: spacing.xl,
+    marginBottom: spacing.xl
   },
 
   nearbySectionTitle: {
     fontSize: typography.title,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: colors.textPrimary
   },
 
   nearbySectionSubtitle: {
     fontSize: typography.caption,
     color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-
-  nearbyEmpty: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
+    marginBottom: spacing.md
   },
 
   card: {
@@ -417,84 +579,43 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     marginBottom: spacing.md,
-    overflow: "hidden",
-    shadowColor: "#2D3047",
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 5,
+    elevation: 5
   },
 
   severityIndicator: {
     width: 6,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20
   },
 
   cardContent: {
     flex: 1,
-    padding: spacing.lg,
+    padding: spacing.lg
   },
 
   location: {
     fontSize: typography.body,
     fontWeight: "600",
-    color: colors.textPrimary,
-  },
-
-  coords: {
-    fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
+    color: colors.textPrimary
   },
 
   time: {
     fontSize: typography.caption,
-    color: colors.textSecondary,
-    marginBottom: spacing.md,
-  },
-
-  actionsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  mapButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-
-  mapText: {
-    color: colors.primary,
-    fontWeight: "600",
-  },
-
-  supportButton: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: 12,
-  },
-
-  supportText: {
-    color: "white",
-    fontWeight: "600",
+    color: colors.textSecondary
   },
 
   actionsContainer: {
-    alignItems: "center",
-  },
-
-  alertButton: {
-    marginBottom: spacing.md,
+    alignItems: "center"
   },
 
   alertText: {
     color: colors.primary,
-    fontSize: typography.body,
+    fontSize: typography.body
   },
-
-  logoutButton: {},
 
   logoutText: {
     color: colors.textSecondary,
-    fontSize: typography.caption,
-  },
+    fontSize: typography.caption
+  }
+
 });

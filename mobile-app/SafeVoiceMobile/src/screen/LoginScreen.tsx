@@ -35,10 +35,11 @@ export default function LoginScreen({ navigation }: any) {
             const response = await loginUser(email, password);
             const token = response.access_token;
             await AsyncStorage.setItem("access_token", response.access_token);
+            await AsyncStorage.setItem("user_name", email);
 
             console.log("Token guardado:", token);
     
-            navigation.replace("Monitoring");
+            navigation.replace("MainDrawer");
 
         } catch (error) {
 
