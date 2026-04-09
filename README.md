@@ -32,10 +32,20 @@ Aplicación de detección de audio
   List of devices attached
   R58XX0R9KXX     device
 
-- ejecutamos el siguiente comando: npx react-native
+  
+
+- ejecutamos el siguiente comando: npx react-native run-android
     - se abre una ventana de Node
     - se inicializará la app en el teléfono
 
 - Para capturar los logs de los servicios que están en Kotlin 
     - adb logcat | grep AudioClassifierHelper
     - adb logcat | grep EventRepository
+ 
+
+## Desarrolladores del proyecto: SafeVoice
+- Gutiérrez Johanna
+- Jaramillo Francisco
+- Miranda Christian
+- Morocho Daniel
+- Muñoz Katherine
